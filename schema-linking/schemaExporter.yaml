@@ -1,0 +1,17 @@
+apiVersion: platform.confluent.io/v1beta1
+kind: SchemaExporter
+metadata:
+  name: schemaexporter
+  namespace: confluent
+spec:
+  sourceCluster:
+  #   schemaRegistryClusterRef:
+  #     name: schemaregistry
+  #     namespace: confluent
+  destinationCluster:
+    schemaRegistryRest:
+      endpoint: http://10.0.0.50:8081
+  # contextType: AUTO
+  contextName: exported
+  subjects: [":*:"]
+  # subjectRenameFormat: copied-${subject}

@@ -1,0 +1,6 @@
+targetSystem: "linux"
+
+datadog:
+  apiKey: b6924d764285109f9efa1ad711282b78
+  site: datadoghq.eu
+  logLevel: INFO
