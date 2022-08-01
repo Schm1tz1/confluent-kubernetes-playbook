@@ -1,14 +1,36 @@
 # Example Setup for Schema Linking
 
-## Setup minimal target cluster
+## Setup your clusters
+
+### Option 1: Have a source cluster running and add a minimal target cluster
 * crerate namespace: `kubectl create namespace confluent-target`
-* install CFK on new namespace `confluent-target`:
+* (maybe) upgrade CFK to also deploy on new namespace `confluent-target` if not alredy done or using `namespaced=false` already:
 ```
 helm upgrade --install confluent-operator \
-    confluentinc/confluent-for-kubernetes \
-    --namespace confluent-target
+  confluentinc/confluent-for-kubernetes \
+  --set namespaceList="{confluent,confluent-target}" \
+  --namespace confluent \
+  --set namespaced=true
 ```
-* deploy minimal cluster: `kubectl apply -f cp-schemareg-target.yaml`
+* deploy minimal cluster: `kubectl apply -f confluent-platform-target.yaml`
+
+### Option 2: Deploy both minimal source and target clusters
+* crerate namespaces: 
+```
+kubectl create namespace confluent
+kubectl create namespace confluent-target
+```
+* deploy operator if not yet done:
+```
+helm upgrade --install confluent-operator \
+  confluentinc/confluent-for-kubernetes \
+  --set namespaced=false \
+  --namespace confluent
+```
+* deploy clusters:
+```
+kubectl apply -f confluent-platform-schemalink.yaml
+```
 
 ## Simple schema linking test
 * Install the schema exporter or source schema registry: `kubectl apply -f schemaExporter.yaml`

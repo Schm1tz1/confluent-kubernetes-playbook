@@ -1,9 +1,4 @@
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: confluent-target
----
 apiVersion: platform.confluent.io/v1beta1
 kind: Zookeeper
 metadata:
@@ -57,8 +52,4 @@ spec:
     init: confluentinc/confluent-init-container:2.4.0
   license:
     globalLicense: true
-  externalAccess:
-    type: nodePort
-    nodePort:
-      host: schemaregistry.confluent.svc.cluster.local
-      nodePortOffset: 30200  
+  
