@@ -10,7 +10,7 @@ spec:
   #     namespace: confluent
   destinationCluster:
     schemaRegistryRest:
-      endpoint: http://10.0.0.50:8081
+      endpoint: http://schemaregistry.confluent-target.svc.cluster.local:8081
   # contextType: AUTO
   contextName: exported
   subjects: [":*:"]

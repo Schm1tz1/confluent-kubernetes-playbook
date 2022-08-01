@@ -1,9 +1,15 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: confluent
+---
 apiVersion: platform.confluent.io/v1beta1
 kind: Zookeeper
 metadata:
   name: zookeeper
   namespace: confluent
+  annotations:
 spec:
   replicas: 1
   image:
@@ -11,6 +17,11 @@ spec:
     init: confluentinc/confluent-init-container:2.4.0
   license:
     globalLicense: true
+  podTemplate:
+    annotations:
+      ad.datadoghq.com/default.check_names: '["confluent_platform"]'
+      ad.datadoghq.com/default.init_configs: '[{"is_jmx": true, "collect_default_metrics": true}]'
+      ad.datadoghq.com/default.instances: '[{"host": "%%host%%","port":"7203", "name":"zookeeper", "max_returned_metrics":1000}]'
   dataVolumeCapacity: 1Gi
   logVolumeCapacity: 1Gi
 ---

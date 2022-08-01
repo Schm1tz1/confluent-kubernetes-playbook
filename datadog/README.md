@@ -15,12 +15,23 @@ helm repo update
 ```
 * adapt [values.yaml](https://github.com/DataDog/helm-charts/blob/main/charts/datadog/values.yaml) to your needs.
 
+* add your API key to secrets management:
+```
+kubectl create secret generic datadog-secret --from-literal api-key="<your apy key>"
+```
+and upgrade or specify in values.yaml as `datadog.apiKeyExistingSecret=datadog-secret`.
+
 * deploy with helm:
 ```
-helm install <RELEASE_NAME> -f values.yaml  --set datadog.apiKey=<DATADOG_API_KEY> datadog/datadog --set targetSystem=<TARGET_SYSTEM>
+helm install <RELEASE_NAME> -f values.yaml  --set datadog.apiKey=<DATADOG_API_KEY> datadog/datadog --set targetSystem=<TARGET_SYSTEM> -n <NAMESPACE>
 ```
 
 * example minimal deployment:
 ```
-helm install latest -f values-minimal.yaml datadog/datadog
+helm install <RELEASE_NAME> -f values-minimal.yaml datadog/datadog -n <NAMESPACE> --create-namespace
+```
+
+* delete:
+```
+helm delete <RELEASE_NAME> --namespace <NAMESPACE>
 ```

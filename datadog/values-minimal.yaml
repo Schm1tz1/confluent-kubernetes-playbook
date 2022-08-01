@@ -1,6 +1,16 @@
 targetSystem: "linux"
 
 datadog:
-  apiKey: b6924d764285109f9efa1ad711282b78
+  apiKey: # <API KEY HERE>
+  apiKeyExistingSecret: datadog-secret
   site: datadoghq.eu
   logLevel: INFO
+  
+  processAgent:
+    enabled: true
+    processCollection: true
+    processDiscovery: true
+
+agents:
+  image:
+    tag: 7.38.0-jmx
