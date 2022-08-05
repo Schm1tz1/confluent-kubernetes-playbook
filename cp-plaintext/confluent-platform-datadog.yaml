@@ -9,7 +9,6 @@ kind: Zookeeper
 metadata:
   name: zookeeper
   namespace: confluent
-  annotations:
 spec:
   replicas: 1
   image:
@@ -37,6 +36,11 @@ spec:
     init: confluentinc/confluent-init-container:2.4.0
   license:
     globalLicense: true
+  podTemplate:
+    annotations:
+      ad.datadoghq.com/default.check_names: '["confluent_platform"]'
+      ad.datadoghq.com/default.init_configs: '[{"is_jmx": true, "collect_default_metrics": true}]'
+      ad.datadoghq.com/default.instances: '[{"host": "%%host%%","port":"7203", "name":"broker", "max_returned_metrics":1000}]'
   dataVolumeCapacity: 1Gi
   metricReporter:
     enabled: true
@@ -127,8 +131,3 @@ spec:
     init: confluentinc/confluent-init-container:2.4.0
   license:
     globalLicense: true
-  externalAccess:
-    type: nodePort
-    nodePort:
-      host: schemaregistry.confluent.svc.cluster.local
-      nodePortOffset: 30200  

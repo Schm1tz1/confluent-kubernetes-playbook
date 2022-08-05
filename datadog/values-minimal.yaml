@@ -3,7 +3,7 @@ targetSystem: "linux"
 datadog:
   apiKey: # <API KEY HERE>
   apiKeyExistingSecret: datadog-secret
-  site: datadoghq.eu
+  # site: datadoghq.eu
   logLevel: INFO
   
   processAgent:

@@ -121,8 +121,3 @@ spec:
     init: confluentinc/confluent-init-container:2.4.0
   license:
     globalLicense: true
-  # externalAccess:
-  #   type: nodePort
-  #   nodePort:
-  #     host: schemaregistry.confluent.svc.cluster.local
-  #     nodePortOffset: 30200  
