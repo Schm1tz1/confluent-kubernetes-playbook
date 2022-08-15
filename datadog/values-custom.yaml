@@ -1,0 +1,38 @@
+targetSystem: "linux"
+
+datadog:
+  apiKey: # <API KEY HERE>
+  apiKeyExistingSecret: datadog-secret
+  # site: datadoghq.eu
+  logLevel: INFO
+  
+  processAgent:
+    enabled: true
+    processCollection: true
+    processDiscovery: true
+
+  confd:
+    # redisdb.yaml: |-
+    #   ad_identifiers:
+    #     - redis
+    #     - bitnami/redis
+    #   init_config:
+    #   instances:
+    #     - host: "%%host%%"
+    #       port: "%%port%%"
+    # jmx.yaml: |-
+    #   ad_identifiers:
+    #     - openjdk
+    #   instance_config:
+    #   instances:
+    #     - host: "%%host%%"
+    #       port: "%%port_0%%"
+    # redisdb.yaml: |-
+    #   init_config:
+    #   instances:
+    #     - host: "outside-k8s.example.com"
+    #       port: 6379
+
+agents:
+  image:
+    tag: 7.38.0-jmx
