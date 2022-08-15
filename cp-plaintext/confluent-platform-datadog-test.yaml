@@ -13,7 +13,7 @@ spec:
     globalLicense: true
   podTemplate:
     annotations:
-      ad.datadoghq.com/zookeeper.check_names: '["confluent_platform"]'
+      ad.datadoghq.com/zookeeper.check_names: '["cp_k8s"]'
       ad.datadoghq.com/zookeeper.init_configs: '[{"is_jmx": true, "collect_default_metrics": true}]'
       ad.datadoghq.com/zookeeper.instances: '[{"host": "%%host%%","port":"7203", "name":"zookeeper", "max_returned_metrics":1000}]'
   dataVolumeCapacity: 1Gi
@@ -33,7 +33,7 @@ spec:
     globalLicense: true
   podTemplate:
     annotations:
-      ad.datadoghq.com/kafka.check_names: '["confluent_platform"]'
+      ad.datadoghq.com/kafka.check_names: '["cp_k8s"]'
       ad.datadoghq.com/kafka.init_configs: '[{"is_jmx": true, "collect_default_metrics": true}]'
       ad.datadoghq.com/kafka.instances: '[{"host": "%%host%%","port":"7203", "name":"kafka", "max_returned_metrics":1000}]'
   dataVolumeCapacity: 1Gi
@@ -73,7 +73,7 @@ spec:
     globalLicense: true
   podTemplate:
     annotations:
-      ad.datadoghq.com/connect.check_names: '["confluent_platform"]'
+      ad.datadoghq.com/connect.check_names: '["cp_k8s"]'
       ad.datadoghq.com/connect.init_configs: '[{"is_jmx": true, "collect_default_metrics": true}]'
       ad.datadoghq.com/connect.instances: '[{"host": "%%host%%","port":"7203", "name":"connect", "max_returned_metrics":1000}]'
   dependencies:
@@ -94,7 +94,7 @@ spec:
     globalLicense: true
   podTemplate:
     annotations:
-      ad.datadoghq.com/ksqldb.check_names: '["confluent_platform"]'
+      ad.datadoghq.com/ksqldb.check_names: '["cp_k8s"]'
       ad.datadoghq.com/ksqldb.init_configs: '[{"is_jmx": true, "collect_default_metrics": true}]'
       ad.datadoghq.com/ksqldb.instances: '[{"host": "%%host%%","port":"7203", "name":"ksqldb", "max_returned_metrics":1000}]'
   dataVolumeCapacity: 1Gi
@@ -114,7 +114,7 @@ spec:
     globalLicense: true
   podTemplate:
     annotations:
-      ad.datadoghq.com/controlcenter.check_names: '["confluent_platform"]'
+      ad.datadoghq.com/controlcenter.check_names: '["cp_k8s"]'
       ad.datadoghq.com/controlcenter.init_configs: '[{"is_jmx": true, "collect_default_metrics": true}]'
       ad.datadoghq.com/controlcenter.instances: '[{"host": "%%host%%","port":"7203", "name":"controlcenter", "max_returned_metrics":1000}]'
   dataVolumeCapacity: 1Gi
@@ -143,6 +143,6 @@ spec:
     globalLicense: true
   podTemplate:
     annotations:
-      ad.datadoghq.com/schemaregistry.check_names: '["confluent_platform"]'
+      ad.datadoghq.com/schemaregistry.check_names: '["cp_k8s"]'
       ad.datadoghq.com/schemaregistry.init_configs: '[{"is_jmx": true, "collect_default_metrics": true}]'
       ad.datadoghq.com/schemaregistry.instances: '[{"host": "%%host%%","port":"7203", "name":"schemaregistry", "max_returned_metrics":1000}]'
