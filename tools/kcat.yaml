@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kcat
+  namespace: confluent
+spec:
+  hostAliases:
+  - ip: "10.0.0.22"
+    hostnames:
+    - "kafka.schmitzi.internal"
+  - ip: "10.0.0.20"
+    hostnames:
+    - "broker0.schmitzi.internal"
+  containers:
+  - name: cp-kcat
+    image: confluentinc/cp-kcat:latest
+    command: ['sh', '-c', 'tail -f /dev/null']
