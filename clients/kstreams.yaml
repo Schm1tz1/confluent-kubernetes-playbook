@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kstreams-app
+  namespace: default
+spec:
+  dnsPolicy: None
+  dnsConfig:
+    nameservers:
+      - 10.0.0.1
+    searches:
+      - fritz.box
+      - schmitzi.internal
+    options:
+      - name: ndots
+        value: "2"
+      - name: edns0  
+  containers:
+  - name: kstreams-app
+    image: test-streams-app:0.1
+    imagePullPolicy: Never
+    volumeMounts:
+    - name: config-volume
+      mountPath: /mnt/config
+  volumes:
+    - name: config-volume
+      configMap:
+        name: kstreams-config
+
