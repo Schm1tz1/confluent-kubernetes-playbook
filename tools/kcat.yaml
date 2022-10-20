@@ -13,5 +13,5 @@ spec:
     - "broker0.schmitzi.internal"
   containers:
   - name: cp-kcat
-    image: confluentinc/cp-kcat:latest
+    image: confluentinc/cp-kcat:7.2.2
     command: ['sh', '-c', 'tail -f /dev/null']

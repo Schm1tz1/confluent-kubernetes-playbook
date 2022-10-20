@@ -17,7 +17,8 @@ spec:
       - name: edns0  
   containers:
   - name: kstreams-app
-    image: test-streams-app:0.1
+    #image: test-streams-app:0.1
+    image: library/mtx-streams-filter:0.1
     imagePullPolicy: Never
     volumeMounts:
     - name: config-volume
