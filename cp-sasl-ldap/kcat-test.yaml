@@ -1,4 +1,17 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kcat-config
+  namespace: confluent
+data:
+  kcat.conf: |
+    bootstrap.servers=kafka.confluent.svc.cluster.local:9092
+    security.protocol=SASL_PLAINTEXT
+    sasl.mechanisms=PLAIN
+    sasl.username=kafka
+    sasl.password=kafka123
+---
+apiVersion: v1
 kind: Pod
 metadata:
   name: kcat
@@ -15,5 +28,7 @@ spec:
         readOnly: true
   volumes:
     - name: kcat-config 
-      secret:
-        secretName: kcat-config
+      configMap:
+        name: kcat-config
+  restartPolicy: Never
+---
