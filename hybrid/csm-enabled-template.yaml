@@ -1,0 +1,17 @@
+spec:
+  template:
+    spec:
+      containers:
+        - name: csm-sidecar
+          image: docker-registry.local/csm:1.2.3
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: csm-properties-volume
+              mountPath: /app/configs
+          env:
+            - name: CSM_PROPS_FILE_PATH
+              value: /app/configs/csm.properties
+      volumes:
+        - name: csm-properties-volume
+          secret:
+            secretName: csm-sidecar-properties

@@ -1,0 +1,42 @@
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Connect
+metadata:
+  name: connect-csm
+  namespace: confluent
+  annotations:
+    platform.confluent.io/pod-overlay-configmap-name: csm-enabled
+spec:
+  replicas: 1
+  spec:
+  podTemplate:
+    probe:
+      liveness:
+      readiness:
+  image:
+    application: confluentinc/cp-server-connect:7.4.0
+    init: confluentinc/confluent-init-container:2.6.0
+  build:
+    type: onDemand
+    onDemand:
+      plugins:
+        locationType: confluentHub
+        confluentHub:
+          - name: kafka-connect-datagen
+            owner: confluentinc
+            version: 0.6.0
+  dependencies:
+    kafka:
+      bootstrapEndpoint: localhost:30001
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: ccloud-credentials
+      tls:
+        enabled: false
+    schemaRegistry:
+      url: https://psrc-8vyvr.eu-central-1.aws.confluent.cloud
+      authentication:
+        type: basic
+        basic:
+          secretRef: ccloud-sr-credentials

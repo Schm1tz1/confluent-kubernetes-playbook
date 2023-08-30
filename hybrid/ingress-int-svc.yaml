@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rest-ingress
+  namespace: confluent
+  annotations:    
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "https"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: rest.k8s.schmitzi.internal
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: kafkarestproxy-0-internal
+                port:
+                  number: 8082
+            path: /
+    - host: connect.k8s.schmitzi.internal
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: connect-0-internal
+                port:
+                  number: 8083
+            path: /
