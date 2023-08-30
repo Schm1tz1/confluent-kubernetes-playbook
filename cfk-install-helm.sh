@@ -15,4 +15,5 @@ helm repo update
 helm upgrade --install confluent-operator \
   confluentinc/confluent-for-kubernetes \
   --set namespaced=false \
+  --set kRaftEnabled=true \
   --namespace confluent
