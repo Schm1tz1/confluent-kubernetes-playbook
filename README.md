@@ -4,11 +4,18 @@
 
 
 ## Example Directories
-* **cp-plaintext** - minimalistic setup of plaintext CP on k8s
-* **schema-linking** - schema exporter tests
-* **connect** - connector examples
+* **cp-plaintext** - Minimalistic setup of plaintext CP on k8s
+* **cp-sasl-ldap*** - LDAP AuthN callback example
+* **hybrid** - (Cloud-)hybrid setups, e.g. self-managed connect
+* **kraft** - KRaft-based examples
+* **cluster-linking** - Cluster linking
+* **schema-linking** - Schema exporter tests
+
+* **connect** - Connector examples
 * **ksqldb** - ksqldb examples
-* **datadog** - datadog integration
+* **clients** - Example client applications
+* **datadog** - Datadog integration
+* **tools** - Tools for testing, e.g. containers with kcat and networking tools
 
 ## Adding your license
 
