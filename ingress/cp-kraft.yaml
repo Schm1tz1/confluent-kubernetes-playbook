@@ -1,0 +1,143 @@
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KRaftController
+metadata:
+  name: kraftcontroller
+  namespace: confluent
+spec:
+  replicas: 3
+  oneReplicaPerNode: true
+  dataVolumeCapacity: 1G
+  image:
+    application: docker.io/confluentinc/cp-server:7.5.1
+    init: confluentinc/confluent-init-container:2.7.1
+  configOverrides:
+    server:
+      - default.replication.factor=3
+      - min.insync.replicas=2
+      - confluent.schema.registry.url=http://schemaregistry.confluent.svc.cluster.local:8081
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Kafka
+metadata:
+  name: kafka
+  namespace: confluent
+spec:
+  replicas: 3
+  oneReplicaPerNode: true
+  image:
+    application: confluentinc/cp-server:7.5.1
+    init: confluentinc/confluent-init-container:2.7.1
+  license:
+    globalLicense: true
+  dataVolumeCapacity: 1Gi
+  dependencies:
+    kRaftController:
+      clusterRef:
+        name: kraftcontroller
+    schemaRegistry:
+      url: http://schemaregistry.confluent.svc.cluster.local:8081
+  listeners:
+      external:
+        externalAccess:
+          type: staticForHostBasedRouting
+          staticForHostBasedRouting:
+            domain: k8s.internal.schmitzi.net
+            brokerPrefix: kafka
+            port: 443
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ControlCenter
+metadata:
+  name: controlcenter
+  namespace: confluent
+spec:
+  replicas: 1
+  internalTopicReplicatorFactor: 1
+  image:
+    application: confluentinc/cp-enterprise-control-center:7.5.1
+    init: confluentinc/confluent-init-container:2.7.1
+  license:
+    globalLicense: true
+  dataVolumeCapacity: 1Gi
+  dependencies:
+    kafka:
+      bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
+    connect:
+      - name: connect
+        url:  http://connect.confluent.svc.cluster.local:8083
+    schemaRegistry:
+      url: http://schemaregistry.confluent.svc.cluster.local:8081
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: SchemaRegistry
+metadata:
+  name: schemaregistry
+  namespace: confluent
+spec:
+  replicas: 1
+  enableSchemaExporter: true
+  image:
+    application: confluentinc/cp-schema-registry:7.5.1
+    init: confluentinc/confluent-init-container:2.7.1
+  license:
+    globalLicense: true
+  configOverrides:
+    server:
+      # activates CSFLE KEK/DEK registry
+      - resource.extension.class=io.confluent.dekregistry.DekRegistryResourceExtension 
+      # activates Data Contracts
+      # - resource.extension.class=io.confluent.kafka.schemaregistry.rulehandler.RuleSetResourceExtension
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Connect
+metadata:
+  name: connect
+  namespace: confluent
+spec:
+  replicas: 1
+  image:
+    application: confluentinc/cp-server-connect:7.5.1
+    init: confluentinc/confluent-init-container:2.7.1
+  license:
+    globalLicense: true
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaRestClass
+metadata:
+  name: restclass
+  namespace: confluent
+spec:
+  kafkaClusterRef:
+    name: kafka
+  kafkaRest:
+    endpoint: http://kafka.confluent.svc.cluster.local:8090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    platform.confluent.io/cr-name: kafka
+    platform.confluent.io/namespace: confluent
+    platform.confluent.io/type: kafka
+    prometheus.io/port: "7778"
+    prometheus.io/scrape: "true"
+  name: kafka-bootstrap
+  namespace: confluent 
+  labels:
+    confluent-platform: "true"
+    cr-name: kafka
+    type: kafka
+spec:
+  ports:
+    - name: external
+      port: 9092
+      protocol: TCP
+      targetPort: 9092
+  selector:
+    app: kafka
+    clusterId: confluent 
+    confluent-platform: "true"
+    type: kafka
+  sessionAffinity: None
+  type: ClusterIP

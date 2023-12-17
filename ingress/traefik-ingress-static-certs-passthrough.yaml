@@ -1,0 +1,55 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: kafka-ingress
+  namespace: confluent
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: HostSNI(`kafka.k8s.internal.schmitzi.net`)
+      services:
+        - name: kafka-bootstrap
+          port: 9092  
+    - match: HostSNI(`kafka0.k8s.internal.schmitzi.net`)
+      services:
+        - name: kafka-0-internal
+          port: 9092
+    - match: HostSNI(`kafka1.k8s.internal.schmitzi.net`)
+      services:
+        - name: kafka-1-internal
+          port: 9092
+    - match: HostSNI(`kafka2.k8s.internal.schmitzi.net`)
+      services:
+        - name: kafka-2-internal
+          port: 9092
+  tls:
+    secretName: k8s-certs
+    passthrough: true 
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: http-ingress
+  namespace: confluent
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`c3.k8s.internal.schmitzi.net`)
+      services:
+        - name: controlcenter-0-internal
+          port: 9021  
+    - kind: Rule
+      match: Host(`schema.k8s.internal.schmitzi.net`)
+      services:
+        - name: schemaregistry-0-internal
+          port: 8081
+    - kind: Rule
+      match: Host(`connect.k8s.internal.schmitzi.net`)
+      services:
+        - name: connect-0-internal
+          port: 8083
+  tls:
+    secretName: k8s-certs
