@@ -8,8 +8,8 @@ spec:
   license:
     globalLicense: true
   image:
-    application: confluentinc/cp-server:7.4.1
-    init: confluentinc/confluent-init-container:2.6.0
+    application: confluentinc/cp-server:7.5.1
+    init: confluentinc/confluent-init-container:2.7.1
   listeners:
     controller:
       tls:
@@ -46,8 +46,8 @@ spec:
   license:
     globalLicense: true
   image:
-    application: confluentinc/cp-server:7.4.1
-    init: confluentinc/confluent-init-container:2.6.0
+    application: confluentinc/cp-server:7.5.1
+    init: confluentinc/confluent-init-container:2.7.1
   tls:
     secretRef: kafka-tls
     #secretRef: tls-group
@@ -162,8 +162,8 @@ spec:
   license:
     globalLicense: true
   image:
-    application: confluentinc/cp-enterprise-control-center:7.4.0
-    init: confluentinc/confluent-init-container:2.6.0
+    application: confluentinc/cp-enterprise-control-center:7.5.1
+    init: confluentinc/confluent-init-container:2.7.1
   tls:
     secretRef: controlcenter-tls
     #secretRef: tls-group
@@ -240,8 +240,8 @@ spec:
   license:
     globalLicense: true
   image:
-    application: confluentinc/cp-schema-registry:7.4.0
-    init: confluentinc/confluent-init-container:2.6.0
+    application: confluentinc/cp-schema-registry:7.5.1
+    init: confluentinc/confluent-init-container:2.7.1
   enableSchemaExporter:
     true
   tls:
