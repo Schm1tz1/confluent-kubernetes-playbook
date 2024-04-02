@@ -12,7 +12,8 @@ kubectl create secret tls ca-pair-sslcerts \
   --cert=./ca.pem \
   --key=./ca-key.pem -n confluent
 
-# kubectl create -n confluent secret generic kraft-credential \
-#     --from-file=plain.txt=./plain.txt \
-#     --from-file=plain-users.json=./plain-users.json \
-#     --from-file=basic.txt=./basic.txt
+kubectl create -n confluent secret generic kraft-credential \
+    --from-file=plain.txt=./plain.txt \
+    --from-file=plain-users.json=./plain-users.json \
+    --from-file=basic.txt=./basic.txt \
+    -o yaml --dry-run=client | kubectl apply -f -
