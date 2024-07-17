@@ -1,0 +1,19 @@
+apiVersion: platform.confluent.io/v1beta1
+kind: ClusterLink
+metadata:
+  name: clusterlink
+  namespace: confluent
+spec:
+  destinationKafkaCluster:
+    bootstrapEndpoint: kafka-new.confluent.svc.cluster.local:9071
+    kafkaRestClassRef: 
+      name: kafka-new-rest
+      namespace: confluent
+  sourceKafkaCluster:
+    bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
+    kafkaRestClassRef: 
+      name: kafka-rest
+      namespace: confluent
+  mirrorTopics:
+  - name: test-topic
+    state: PROMOTE
