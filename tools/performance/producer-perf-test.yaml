@@ -1,0 +1,69 @@
+apiVersion: v1 
+kind: ConfigMap 
+metadata:
+  name: perftest-config
+  namespace: confluent
+data:
+  java-client.properties: | 
+    # Required connection configs for Kafka producer, consumer, and admin
+    bootstrap.servers=kafka.confluent:9071
+    # security.protocol=SASL_PLAINTEXT
+    # sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username='...' password='...';
+    # sasl.mechanism=PLAIN
+  linger-scan.sh: |
+    #!/bin/sh
+
+    size_arr=(0 10 100 1000 10000 100000 1000000)
+
+    for size in ${size_arr[@]}; do
+      echo $size
+      kafka-producer-perf-test --print-metrics --topic performance --num-records 1000000 --record-size 100 --throughput 10000000 --producer.config /perftest-config/java-client.properties --producer-props acks=all batch.size=$size linger.ms=500
+    done
+  grid-scan-linger-batch.sh: |
+    #!/bin/sh
+
+    extract_latency() {
+        echo $1 | tr ',' '\n' | grep 'avg latency' | sed 's/ ms avg latency//g'
+    }
+
+    extract_throughput() {
+      echo $1 | tr ',' '\n' | grep 'records/sec' | cut -d "(" -f2 | cut -d ")" -f1 | sed 's/ MB\/sec//g'
+    }
+
+    batch_size_arr=(0 10 100 1000 10000 100000 1000000)
+    linger_ms_arr=(0 10 30 100 300 1000 3000)
+
+    for batch_size in ${batch_size_arr[@]}; do
+      for linger_ms in ${linger_ms_arr[@]}; do
+          # perf_out=$(kafka-producer-perf-test --topic performance --num-records 1000000 --record-size 100 --throughput 10000000 --producer.config /perftest-config/java-client.properties --producer-props acks=all linger.ms=$linger_ms batch.size=$batch_size)
+          # echo $batch_size $linger_ms $(extract_latency($perf_out)) $(extract_throughput($perf_out))
+          echo "$batch_size $linger_ms"
+          kafka-producer-perf-test --print-metrics --topic performance --num-records 1000000 --record-size 100 --throughput 10000000 --producer.config /perftest-config/java-client.properties --producer-props acks=all linger.ms=$linger_ms batch.size=$batch_size
+      done
+    done
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: producer-perf-test
+  namespace: confluent
+spec:
+  completions: 1
+  parallelism: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: cp-kafka
+        image: confluentinc/cp-server:7.7.0
+        command: ['sh', '-c', '/perftest-config/linger-scan.sh']
+        # command: ['sh', '-c', '/perftest-config/grid-scan-linger-batch.sh']
+        volumeMounts:
+        - mountPath: /perftest-config/
+          name: perftest-config
+          readOnly: true
+      volumes:
+      - name: perftest-config
+        configMap:
+          name: perftest-config
+          defaultMode: 0777

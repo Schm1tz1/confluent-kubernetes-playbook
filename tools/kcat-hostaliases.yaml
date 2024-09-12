@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kcat
+spec:
+  hostAliases:
+  - ip: "10.0.0.30"
+    hostnames:
+    - "cp-zk-0.schmitzi.internal"
+    - "cp-zk-0"
+  - ip: "10.0.0.31"
+    hostnames:
+    - "cp-zk-1.schmitzi.internal"
+    - "cp-zk-1"
+  - ip: "10.0.0.32"
+    hostnames:
+    - "cp-zk-2.schmitzi.internal"
+    - "cp-zk-2"
+  - ip: "10.0.0.40"
+    hostnames:
+    - "cp-broker-0.schmitzi.internal"
+    - "cp-broker-0"
+  - ip: "10.0.0.41"
+    hostnames:
+    - "cp-broker-1.schmitzi.internal"
+    - "cp-broker-1"
+  - ip: "10.0.0.42"
+    hostnames:
+    - "cp-broker-2.schmitzi.internal"
+    - "cp-broker-2"
+  - ip: "10.0.0.50"
+    hostnames:
+    - "cp-schema-0.schmitzi.internal"
+    - "cp-schema-0"
+  - ip: "10.0.0.60"
+    hostnames:
+    - "cp-rest-0.schmitzi.internal"
+    - "cp-rest-0"
+  - ip: "10.0.0.70"
+    hostnames:
+    - "cp-ksql-0.schmitzi.internal"
+    - "cp-ksql-0"
+  - ip: "10.0.0.80"
+    hostnames:
+    - "cp-connect-0.schmitzi.internal"
+    - "cp-connect-0"
+  - ip: "10.0.0.90"
+    hostnames:
+    - "cp-c3-0.schmitzi.internal"
+    - "cp-c3-0"
+  containers:
+  - name: cp-kcat
+    image: confluentinc/cp-kcat:7.2.2
+    command: ['sh', '-c', 'tail -f /dev/null']
