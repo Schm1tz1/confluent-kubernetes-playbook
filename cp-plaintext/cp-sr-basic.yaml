@@ -7,8 +7,8 @@ metadata:
 spec:
   replicas: 1
   image:
-    application: confluentinc/cp-zookeeper:7.6.1
-    init: confluentinc/confluent-init-container:2.8.2
+    application: confluentinc/cp-zookeeper:7.3.2
+    init: confluentinc/confluent-init-container:2.5.1
   license:
     globalLicense: true
   dataVolumeCapacity: 1Gi
@@ -22,8 +22,8 @@ metadata:
 spec:
   replicas: 1
   image:
-    application: confluentinc/cp-server:7.6.1
-    init: confluentinc/confluent-init-container:2.8.2
+    application: confluentinc/cp-server:7.3.2
+    init: confluentinc/confluent-init-container:2.5.1
   license:
     globalLicense: true
   dataVolumeCapacity: 1Gi
@@ -48,8 +48,8 @@ spec:
   replicas: 1
   internalTopicReplicationFactor: 1
   image:
-    application: confluentinc/cp-server-connect:7.6.1
-    init: confluentinc/confluent-init-container:2.8.2
+    application: confluentinc/cp-server-connect:7.3.2
+    init: confluentinc/confluent-init-container:2.5.1
   build:
     type: onDemand
     onDemand:
@@ -73,8 +73,8 @@ metadata:
 spec:
   replicas: 1
   image:
-    application: confluentinc/cp-ksqldb-server:7.6.1
-    init: confluentinc/confluent-init-container:2.8.2
+    application: confluentinc/cp-ksqldb-server:7.3.2
+    init: confluentinc/confluent-init-container:2.5.1
   license:
     globalLicense: true
   dataVolumeCapacity: 1Gi
@@ -88,14 +88,18 @@ spec:
   replicas: 1
   internalTopicReplicatorFactor: 1
   image:
-    application: confluentinc/cp-enterprise-control-center:7.6.1
-    init: confluentinc/confluent-init-container:2.8.2
+    application: confluentinc/cp-enterprise-control-center:7.3.2
+    init: confluentinc/confluent-init-container:2.5.1
   license:
     globalLicense: true
   dataVolumeCapacity: 1Gi
   dependencies:
     schemaRegistry:
       url: http://schemaregistry.confluent.svc.cluster.local:8081
+      authentication:
+        type: basic
+        basic:
+          secretRef: sr-client-basic
     ksqldb:
     - name: ksqldb
       url: http://ksqldb.confluent.svc.cluster.local:8088
@@ -112,7 +116,19 @@ spec:
   replicas: 1
   enableSchemaExporter: true
   image:
-    application: confluentinc/cp-schema-registry:7.6.1
-    init: confluentinc/confluent-init-container:2.8.2
+    application: confluentinc/cp-schema-registry:7.3.2
+    init: confluentinc/confluent-init-container:2.5.1
   license:
     globalLicense: true
+  configOverrides:
+    server:
+      - resource.extension.class=io.confluent.kafka.schemaregistry.security.SchemaRegistrySecurityResourceExtension
+      - confluent.schema.registry.authorizer.class=io.confluent.kafka.schemaregistry.security.authorizer.schemaregistryacl.SchemaRegistryAclAuthorizer
+      - confluent.schema.registry.auth.mechanism=JETTY_AUTH
+  authentication:
+    type: basic
+    basic:
+      secretRef: roles-sr
+      # directoryPathInContainer:  # can be used alternatively to secretRef
+      # restrictedRoles:
+      #roles:
