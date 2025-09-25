@@ -1,0 +1,149 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: zookeeper-certificate
+  namespace: confluent
+spec:
+  commonName: zookeeper
+  dnsNames:
+    - zookeeper
+    - 'zookeeper.confluent.svc.cluster.local'
+    - '*.zookeeper.confluent.svc.cluster.local'
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+  secretName: tls-zookeeper
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kraftcontroller-certificate
+  namespace: confluent
+spec:
+  commonName: kraftcontroller
+  dnsNames:
+    - kraftcontroller
+    - 'kraftcontroller.confluent.svc.cluster.local'
+    - '*.kraftcontroller.confluent.svc.cluster.local'
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+  secretName: tls-kraftcontroller
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kafka-certificate
+  namespace: confluent
+spec:
+  commonName: kafka
+  dnsNames:
+    - kafka
+    - 'kafka.confluent.svc.cluster.local'
+    - '*.kafka.confluent.svc.cluster.local'
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+  secretName: tls-kafka
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: schemaregistry-certificate
+  namespace: confluent
+spec:
+  commonName: sr
+  dnsNames:
+    - sr
+    - schemaregistry
+    - 'schemaregistry.confluent.svc.cluster.local'
+    - '*.schemaregistry.confluent.svc.cluster.local'
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+  secretName: tls-schemaregistry
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: connect-certificate
+  namespace: confluent
+spec:
+  commonName: controlcenter
+  dnsNames:
+    - connect
+    - 'connect.confluent.svc.cluster.local'
+    - '*.connect.confluent.svc.cluster.local'
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+  secretName: tls-connect
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: controlcenter-certificate
+  namespace: confluent
+spec:
+  commonName: c3
+  dnsNames:
+    - c3
+    - controlcenter
+    - 'controlcenter.confluent.svc.cluster.local'
+    - '*.controlcenter.confluent.svc.cluster.local'
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+  secretName: tls-controlcenter
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kafkarestproxy-certificate
+  namespace: confluent
+spec:
+  commonName: krp
+  dnsNames:
+    - krp
+    - kafkarestproxy
+    - 'kafkarestproxy.confluent.svc.cluster.local'
+    - '*.kafkarestproxy.confluent.svc.cluster.local'
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+  secretName: tls-kafkarestproxy
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ksql-certificate
+  namespace: confluent
+spec:
+  commonName: ksql
+  dnsNames:
+    - ksql
+    - ksqldb
+    - 'ksqldb.confluent.svc.cluster.local'
+    - '*.ksqldb.confluent.svc.cluster.local'
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+  secretName: tls-ksql
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: client-certificate
+  namespace: confluent
+spec:
+  commonName: client
+  dnsNames:
+    - client
+    - client
+    - 'client.confluent.svc.cluster.local'
+    - '*.client.confluent.svc.cluster.local'
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+  secretName: tls-client

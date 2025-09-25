@@ -1,0 +1,252 @@
+apiVersion: platform.confluent.io/v1beta1
+kind: KRaftController
+metadata:
+  name: kraftcontroller
+  namespace: confluent
+spec:
+  authorization:
+    superUsers:
+      - User:kafka
+      - User:mds
+      - User:operator
+    type: rbac
+  dataVolumeCapacity: 10G
+  image:
+    application: confluentinc/cp-server:7.9.1
+    init: confluentinc/confluent-init-container:2.11.1
+  listeners:
+    controller:
+      authentication:
+        jaasConfig:
+          secretRef: credentials
+        type: plain
+      tls:
+        enabled: true
+  replicas: 3
+  tls:
+    secretRef: tls-kraftcontroller 
+  dependencies:
+    metricsClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9090
+      authentication:
+        type: basic
+        basic:
+          secretRef: prometheus-client-creds
+      tls:
+        enabled: true
+        secretRef: tls-controlcenter
+    mdsKafkaCluster:
+      bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: credentials
+      tls:
+        enabled: true
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Kafka
+metadata:
+  name: kafka
+  namespace: confluent
+spec:
+  configOverrides:
+    server:
+      - confluent.authorizer.init.timeout.ms=600000
+    log4j:
+      # - authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      - default.replication.factor=3
+      - min.insync.replicas=2
+      - log4j.logger.io.confluent.rest-utils=DEBUG, stdout
+      - log4j.additivity.io.confluent.rest-utils=false
+      - log4j.logger.io.confluent.rbacapi=DEBUG, stdout
+      - log4j.additivity.io.confluent.rbacapi=false
+      - log4j.logger.io.confluent.tokenapi=DEBUG, stdout
+      - log4j.additivity.io.confluent.tokenapi=false
+      - log4j.logger.io.confluent.security.auth=TRACE, stdout
+      - log4j.additivity.io.confluent.security.auth=false
+      - log4j.logger.io.confluent.security.store=DEBUG, stdout
+      - log4j.additivity.io.confluent.security.store=false
+      - log4j.logger.io.confluent.common.security.jetty=DEBUG, stdout
+      - log4j.additivity.io.confluent.common.security.jetty=false
+      - log4j.logger.io.confluent.security.auth.provider.ldap=TRACE, stdout
+  authorization:
+    superUsers:
+      - User:kafka
+      - User:mds
+      - User:operator
+    type: rbac
+  dataVolumeCapacity: 10G
+  dependencies:
+    metricsClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9090
+      authentication:
+        type: basic
+        basic:
+          secretRef: prometheus-client-creds
+      tls:
+        enabled: true
+        secretRef: tls-controlcenter
+    kRaftController:
+      clusterRef:
+        name: kraftcontroller
+      controllerListener:
+        authentication:
+          jaasConfig:
+            secretRef: credentials
+          type: plain
+        tls:
+          enabled: true
+    kafkaRest:
+      authentication:
+        bearer:
+          secretRef: mds-client
+        type: bearer
+  image:
+    application: confluentinc/cp-server:7.9.1
+    init: confluentinc/confluent-init-container:2.11.1
+  listeners:
+    internal:
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: credentials
+      tls:
+        enabled: true
+    external:
+      authentication:
+        jaasConfig:
+          secretRef: credentials
+        type: plain
+      tls:
+        enabled: true
+    replication:
+      authentication:
+        jaasConfig:
+          secretRef: credentials
+        type: plain
+      tls:
+        enabled: true
+  replicas: 3
+  services:
+    kafkaRest:
+      tls:
+        enabled: true
+    mds:
+      provider:
+        ldap:
+          address: ldap://ldap.confluent.svc.cluster.local:389
+          authentication:
+            simple:
+              secretRef: credentials
+            type: simple
+          configurations:
+            groupMemberAttribute: member
+            groupMemberAttributePattern: CN=(.*),DC=test,DC=com
+            groupNameAttribute: cn
+            groupObjectClass: group
+            groupSearchBase: dc=test,dc=com
+            userMemberOfAttributePattern: CN=(.*),DC=test,DC=com
+            userNameAttribute: cn
+            userObjectClass: organizationalRole
+            userSearchBase: dc=test,dc=com
+          tls:
+            enabled: true
+        type: ldap
+      tls:
+        enabled: true
+      tokenKeyPair:
+        secretRef: mds-token
+  tls:
+    secretRef: tls-kafka
+
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaRestClass
+metadata:
+  name: default
+  namespace: confluent
+spec:
+  kafkaClusterRef:
+    name: kafka
+    namespace: confluent
+  kafkaRest:
+    endpoint: https://kafka.confluent.svc.cluster.local:8090
+    authentication:
+      type: bearer
+      bearer:
+        secretRef: rest-credential
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ControlCenter
+metadata:
+  name: controlcenter
+  namespace: confluent
+spec:
+  license:
+    globalLicense: true
+  authorization:
+    type: rbac
+  replicas: 1
+  image:
+    application: confluentinc/cp-enterprise-control-center-next-gen:2.0.0
+    init: confluentinc/confluent-init-container:2.11.1
+  dataVolumeCapacity: 10Gi
+  tls:
+    secretRef: tls-controlcenter
+  dependencies:
+    kafka:
+      bootstrapEndpoint: kafka.confluent.svc.cluster.local:9073
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: credentials
+      tls:
+        enabled: true
+    mds:
+      endpoint: https://kafka.confluent.svc.cluster.local:8090
+      tokenKeyPair:
+        secretRef: mds-token
+      authentication:
+        type: bearer
+        bearer:
+          secretRef: mds-client-c3
+      tls:
+        enabled: true
+    prometheusClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9090
+      authentication:
+        type: basic
+        basic:
+          secretRef: prometheus-client-creds
+      tls:
+        enabled: true
+        secretRef: tls-controlcenter
+    alertManagerClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9093
+      authentication:
+        type: basic
+        basic:
+          secretRef: alertmanager-client-creds
+      tls:
+        enabled: true
+        secretRef: tls-controlcenter
+  services:
+    prometheus:
+       image: confluentinc/cp-enterprise-prometheus:2.0.0
+       authentication:
+         type: basic
+         basic:
+          secretRef: prometheus-credentials
+       tls:
+         secretRef: tls-controlcenter
+       pvc:
+         dataVolumeCapacity: 10Gi
+    alertmanager:
+       image: confluentinc/cp-enterprise-alertmanager:2.0.0
+       authentication:
+         type: basic
+         basic:
+          secretRef: alertmanager-credentials
+       tls:
+         secretRef: tls-controlcenter
