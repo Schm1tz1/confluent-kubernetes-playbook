@@ -1,27 +1,114 @@
----
 apiVersion: platform.confluent.io/v1beta1
 kind: ConfluentRolebinding
 metadata:
-  name: controlcenter-user
+  name: controlcenter-kafka
   namespace: confluent
 spec:
-  kafkaRestClassRef:
-    name: default
   principal:
-    name: c3
     type: user
+    name: control-center
   role: SystemAdmin
 ---
 apiVersion: platform.confluent.io/v1beta1
 kind: ConfluentRolebinding
 metadata:
-  name: controlcenter-group
+  name: controlcenter-connect
   namespace: confluent
 spec:
-  kafkaRestClassRef:
-    name: default
+  clustersScopeByIds:
+    connectClusterId: connect
   principal:
-    name: c3users
+    type: user
+    name: control-center
+  role: SystemAdmin
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: controlcenter-ksqldb
+  namespace: confluent
+spec:
+  clustersScopeByIds:
+    ksqlClusterId: ksqldb
+  principal:
+    type: user
+    name: control-center
+  role: SystemAdmin
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: controlcenter-registry
+  namespace: confluent
+spec:
+  clustersScopeByIds:
+    schemaRegistryClusterId: schema-registry
+  principal:
+    type: user
+    name: control-center
+  role: SystemAdmin
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: admins-kafka
+  namespace: confluent
+spec:
+  principal:
+    name: admins
     type: group
-  role: Operator
+  role: SystemAdmin
+
+---
+# needed to grant the permissions to Kafka topics and groups
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: registry-kafka
+  namespace: confluent
+spec:
+  principal:
+    type: user
+    name: registry
+  resourcePatterns:
+  - name: _confluent-license
+    patternType: LITERAL
+    resourceType: Topic
+  - name: _confluent-command
+    patternType: LITERAL
+    resourceType: Topic
+  - name: _schemas
+    patternType: LITERAL
+    resourceType: Topic
+  - name: schema-registry
+    patternType: LITERAL
+    resourceType: Group
+  role: ResourceOwner
+---
+# needed to query MDS for user permissions
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: registry-registry
+  namespace: confluent
+spec:
+  clustersScopeByIds:
+    schemaRegistryClusterId: schema-registry
+  principal:
+    name: registry
+    type: user
+  role: SecurityAdmin
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: admins-registry
+  namespace: confluent
+spec:
+  clustersScopeByIds:
+    schemaRegistryClusterId: schema-registry
+  principal:
+    name: admins
+    type: group
+  role: SystemAdmin
 ---

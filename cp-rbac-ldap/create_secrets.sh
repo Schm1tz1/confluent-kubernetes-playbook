@@ -5,6 +5,12 @@ set -x
 kubectl -n confluent delete secret credentials
 kubectl -n confluent delete secret mds-token
 kubectl -n confluent delete secret mds-client
+kubectl -n confluent delete secret mds-client-c3
+kubectl -n confluent delete secret mds-client-connect
+kubectl -n confluent delete secret mds-client-sr
+kubectl -n confluent delete secret mds-client-ksql
+kubectl -n confluent delete secret mds-client-krp
+kubectl -n confluent delete rest-credential
 
 # Issuer and Certificates via CertBot
 kubectl apply -f ../certs/issuer.yaml

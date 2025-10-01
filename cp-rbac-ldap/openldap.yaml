@@ -265,6 +265,8 @@ metadata:
     app: ldap
 spec:
   ports:
+  - port: 389
+    name: ldap
   - port: 636
     name: ldaps
   publishNotReadyAddresses: false
