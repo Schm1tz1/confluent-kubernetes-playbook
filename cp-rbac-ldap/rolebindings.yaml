@@ -12,3 +12,16 @@ spec:
     type: user
   role: SystemAdmin
 ---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: controlcenter-group
+  namespace: confluent
+spec:
+  kafkaRestClassRef:
+    name: default
+  principal:
+    name: c3users
+    type: group
+  role: Operator
+---

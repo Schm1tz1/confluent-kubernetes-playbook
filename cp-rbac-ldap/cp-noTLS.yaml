@@ -137,17 +137,29 @@ spec:
               secretRef: credentials
             type: simple
           configurations:
-            groupMemberAttribute: memberUid
-            groupMemberAttributePattern: cn=(.*),ou=users,dc=test,dc=com
+            groupMemberAttribute: member
+            groupMemberAttributePattern: uid=(.*?),.*
             groupNameAttribute: cn
-            groupObjectClass: posixGroup
-            groupSearchBase: OU=groups,DC=test,DC=com
-            groupSearchScope: 2
-            userMemberOfAttributePattern: cn=(.*),ou=users,.*
-            userNameAttribute: cn
-            userObjectClass: organizationalRole
-            userSearchBase: OU=users,DC=test,DC=com
-            userSearchScope: 1
+            groupObjectClass: groupOfNames
+            groupSearchBase: OU=groups,DC=confluent,DC=demo,DC=org
+            groupSearchScope: 1
+            userMemberOfAttributePattern: cn=(.*),ou=groups,.*
+            userNameAttribute: uid
+            userObjectClass: '*'
+            userSearchBase: DC=confluent,DC=demo,DC=org
+            userSearchFilter: (|(objectClass=inetOrgPerson)(objectClass=account))
+            userSearchScope: 2
+            # groupMemberAttribute: memberUid
+            # groupMemberAttributePattern: cn=(.*),ou=users,dc=test,dc=com
+            # groupNameAttribute: cn
+            # groupObjectClass: posixGroup
+            # groupSearchBase: OU=groups,DC=test,DC=com
+            # groupSearchScope: 2
+            # userMemberOfAttributePattern: cn=(.*),ou=users,.*
+            # userNameAttribute: cn
+            # userObjectClass: organizationalRole
+            # userSearchBase: OU=users,DC=test,DC=com
+            # userSearchScope: 1
           tls:
             enabled: false
         type: ldap

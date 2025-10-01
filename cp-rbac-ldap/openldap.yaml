@@ -1,0 +1,411 @@
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: ldap-ldifs
+stringData:
+   00-groups.ldif: |
+    dn: ou=groups,{{ LDAP_BASE_DN }}
+    objectClass: organizationalUnit
+    ou: services
+   00-services.ldif: |
+    dn: ou=services,{{ LDAP_BASE_DN }}
+    objectClass: organizationalUnit
+    ou: services
+   00-users.ldif: |
+    dn: ou=users,{{ LDAP_BASE_DN }}
+    objectClass: organizationalUnit
+    ou: services
+   01-services.ldif: |
+    dn: uid=operator,ou=services,{{ LDAP_BASE_DN }}
+    objectClass: account
+    objectClass: simpleSecurityObject
+    uid: operator
+    userPassword: E19IEq4WmQKn
+
+    dn: uid=control-center,ou=services,{{ LDAP_BASE_DN }}
+    objectClass: account
+    objectClass: simpleSecurityObject
+    uid: control-center
+    userPassword: 5LcWkkg7zmWC
+
+    dn: uid=connect,ou=services,{{ LDAP_BASE_DN }}
+    objectClass: account
+    objectClass: simpleSecurityObject
+    uid: connect
+    userPassword: NZKmWfzmbBNr
+
+    dn: uid=kafka,ou=services,{{ LDAP_BASE_DN }}
+    objectClass: account
+    objectClass: simpleSecurityObject
+    uid: kafka
+    userPassword: yZvEFM3AV7mj
+
+    dn: uid=ksqldb,ou=services,{{ LDAP_BASE_DN }}
+    objectClass: account
+    objectClass: simpleSecurityObject
+    uid: ksqldb
+    userPassword: u5FwtnVSWWsb
+
+    dn: uid=registry,ou=services,{{ LDAP_BASE_DN }}
+    objectClass: account
+    objectClass: simpleSecurityObject
+    uid: registry
+    userPassword: TuXumvSjSqFT
+
+    dn: uid=restproxy,ou=services,{{ LDAP_BASE_DN }}
+    objectClass: account
+    objectClass: simpleSecurityObject
+    uid: restproxy
+    userPassword: N7LwkCZE9TdH
+
+    dn: uid=wikipedia,ou=services,{{ LDAP_BASE_DN }}
+    objectClass: account
+    objectClass: simpleSecurityObject
+    uid: wikipedia
+    userPassword: Tf59qbpDBPcm
+   01-users.ldif: |
+    dn: uid=admin,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: admin
+    uid: admin
+    userPassword: McCmv3ufAsmX
+    gn: Admin
+    sn: Administrator
+
+    dn: uid=tester,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: tester
+    uid: tester
+    userPassword: tkMaMT7kwfZY
+    gn: Tester
+    sn: Test
+
+    dn: uid=peter,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Peter Arnold
+    uid: peter
+    userPassword: ELERbgP7SFyy
+    gn: Peter
+    sn: Arnold
+
+    dn: uid=sarah,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Sarah Haynes
+    uid: sarah
+    userPassword: brXdDGTu9YZQ
+    gn: Sarah
+    sn: Haynes
+
+    dn: uid=megan,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Megan Vargas
+    uid: megan
+    userPassword: ZUJkgPeT2a6S
+    gn: Megan
+    sn: Vargas
+
+    dn: uid=jacob,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Jacob Morton
+    uid: jacob
+    userPassword: e2FKTy6aQT93
+    gn: Jacob
+    sn: Morton
+
+    dn: uid=roger,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Roger Acosta
+    uid: roger
+    userPassword: 7aT6zP8MTuK8
+    gn: Roger
+    sn: Acosta
+
+    dn: uid=padme,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Padme Barlow
+    uid: padme
+    userPassword: TmHjV5KWQAQK
+    gn: Padme
+    sn: Barlow
+
+    dn: uid=linda,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Linda Sutton
+    uid: linda
+    userPassword: 92NRS7eA9sbJ
+    gn: Linda
+    sn: Sutton
+
+    dn: uid=henry,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Henry Molina
+    uid: henry
+    userPassword: hjQgpX32rBju
+    gn: Henry
+    sn: Molina
+
+    dn: uid=agnes,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Agnes Mendez
+    uid: agnes
+    userPassword: SyW6TxZPk9RC
+    gn: Agnes
+    sn: Mendez
+
+    dn: uid=tommy,ou=users,{{ LDAP_BASE_DN }}
+    objectClass: inetOrgPerson
+    cn: Tommy Murray
+    uid: tommy
+    userPassword: 4Enfq4gQchad
+    gn: Tommy
+    sn: Murray
+   02-groups.ldif: |
+    dn: cn=admins,ou=groups,{{ LDAP_BASE_DN }}
+    objectClass: groupOfNames
+    cn: admins
+    member: uid=admin,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=peter,ou=users,{{ LDAP_BASE_DN }}
+
+    dn: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+    objectClass: groupOfNames
+    cn: users
+    member: uid=peter,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=sarah,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=megan,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=jacob,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=roger,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=padme,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=linda,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=henry,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=agnes,ou=users,{{ LDAP_BASE_DN }}
+    member: uid=tommy,ou=users,{{ LDAP_BASE_DN }}
+   03-users.ldif: |
+    dn: uid=admin,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=admins,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=peter,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=admins,ou=groups,{{ LDAP_BASE_DN }}
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=sarah,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=megan,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=jacob,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=roger,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=padme,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=linda,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=henry,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=agnes,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+
+    dn: uid=tommy,ou=users,{{ LDAP_BASE_DN }}
+    changetype: modify
+    add: memberOf
+    memberOf: cn=users,ou=groups,{{ LDAP_BASE_DN }}
+   99-acls.ldif: |
+    dn: olcDatabase={1}{{ LDAP_BACKEND }},cn=config
+    changetype: modify
+    delete: olcAccess
+    -
+    add: olcAccess
+    olcAccess: to * by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by * break
+    olcAccess: to attrs=userPassword,shadowLastChange by self write by dn="cn=admin,{{ LDAP_BASE_DN }}" write by anonymous auth by * none
+    olcAccess: to * by self read by dn="cn=admin,{{ LDAP_BASE_DN }}" write by dn="uid=kafka,ou=services,{{ LDAP_BASE_DN }}" read by * none
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: ldap-passwords
+data:
+  # mds: aGd4ZDJlSHpCa3My
+  admin: M0c1N3dOdVNKWFRq
+  config: cXk0U0diZllEaFVm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ldap
+  labels:
+    app: ldap
+spec:
+  ports:
+  - port: 636
+    name: ldaps
+  publishNotReadyAddresses: false
+  selector:
+    app: ldap
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ldap
+spec:
+  selector:
+    matchLabels:
+      app: ldap
+  serviceName: ldap
+  replicas: 1
+
+  # for testing use:
+  # ldapsearch \
+  # -H ldap://localhost \
+  # -b ${LDAP_BASE_DN} \
+  # -D cn=admin,${LDAP_BASE_DN} \
+  # -w ${LDAP_ADMIN_PASSWORD} \
+  # -s sub \
+  # 'uid=kafka'
+
+  template:
+    metadata:
+      labels:
+        app: ldap
+      # annotations:
+      #   reloader.stakater.com/auto: "true"
+    spec:
+      # workaround to avoid duplicate file processing, i.e. materialize the secret into empty dir
+      initContainers:
+      - name: init
+        image: busybox:1.28
+        command: 
+        - sh
+        - -c
+        - >-
+          cp /mnt/ldifs-secret/*.ldif /mnt/ldifs/
+        volumeMounts:
+        - mountPath: /mnt/ldifs-secret
+          name: ldifs-secret
+        - mountPath: /mnt/ldifs
+          name: ldifs
+      containers:
+      - name: ldap
+        args:
+        - --copy-service
+        - --loglevel=debug
+        imagePullPolicy: IfNotPresent
+        image: osixia/openldap:1.5.0
+        ports:
+        - containerPort: 389
+          name: ldap
+        - containerPort: 636
+          name: ldaps
+        readinessProbe:
+          tcpSocket:
+            port: 389
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        livenessProbe:
+          tcpSocket:
+            port: 389
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        env:
+        - name: LDAP_TLS_VERIFY_CLIENT
+          value: try
+        - name: LDAP_TLS_CRT_FILENAME
+          value: tls.crt
+        - name: LDAP_TLS_KEY_FILENAME
+          value: tls.key
+        - name: LDAP_TLS_CA_CRT_FILENAME
+          value: ca.crt
+        - name: LDAP_TLS
+          value: "true"
+        # needed because otherwise kubernetes injects the variable
+        - name: LDAP_PORT
+          value: "389"
+        - name: LDAP_ORGANISATION
+          value: Demo
+        - name: LDAP_DOMAIN
+          value: confluent.demo.org
+        - name: LDAP_BASE_DN
+          value: DC=confluent,DC=demo,DC=org
+        - name: CONTAINER_LOG_LEVEL
+          value: "4"
+        - name: LDAP_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ldap-passwords
+              key: admin
+        - name: LDAP_CONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ldap-passwords
+              key: config
+
+        # - name: LDAP_READONLY_USER
+        #   value: "true"
+        # - name: LDAP_READONLY_USER_USERNAME
+        #   value: "mds"
+        # - name: LDAP_READONLY_USER_PASSWORD
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: ldap-passwords
+        #       key: mds
+
+        volumeMounts:
+        - mountPath: /container/service/slapd/assets/certs
+          name: certs
+        - mountPath: /container/service/slapd/assets/config/bootstrap/ldif/custom
+          name: ldifs
+        - mountPath: /var/lib/ldap
+          name: data
+        - mountPath: /etc/ldap/slapd.d
+          name: config
+      volumes:
+      - name: certs
+        secret:
+          secretName: tls-ldap
+      # normally ldifs should come directly from ldap-ldifs secret
+      # the problem is how k8s manages secret entries
+      # during startup the ldap script looks inside this directory and recursively
+      # scans it for ldif files; this creates conflicts between the files to be deployed
+      # and their master copies
+      # 
+      # in this manifest the init container takes care of materializing the secret
+      # and the ldifs mount is free from symlinks
+      - name: ldifs
+        emptyDir: {}
+      - name: ldifs-secret
+        secret:
+          secretName: ldap-ldifs
+      # these normally come from PVCs, but in our case the LDAP is stateless
+      - name: data
+        emptyDir: {}
+      - name: config
+        emptyDir: {}
+---
