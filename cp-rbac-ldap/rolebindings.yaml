@@ -16,7 +16,7 @@ metadata:
   namespace: confluent
 spec:
   clustersScopeByIds:
-    connectClusterId: connect
+    connectClusterId: confluent.connect
   principal:
     type: user
     name: control-center
@@ -29,7 +29,7 @@ metadata:
   namespace: confluent
 spec:
   clustersScopeByIds:
-    ksqlClusterId: ksqldb
+    ksqlClusterId: confluent.ksqldb
   principal:
     type: user
     name: control-center
@@ -42,7 +42,7 @@ metadata:
   namespace: confluent
 spec:
   clustersScopeByIds:
-    schemaRegistryClusterId: schema-registry
+    schemaRegistryClusterId: id_schemaregistry_confluent
   principal:
     type: user
     name: control-center
@@ -93,7 +93,7 @@ metadata:
   namespace: confluent
 spec:
   clustersScopeByIds:
-    schemaRegistryClusterId: schema-registry
+    schemaRegistryClusterId: id_schemaregistry_confluent
   principal:
     name: registry
     type: user
@@ -106,7 +106,7 @@ metadata:
   namespace: confluent
 spec:
   clustersScopeByIds:
-    schemaRegistryClusterId: schema-registry
+    schemaRegistryClusterId: id_schemaregistry_confluent
   principal:
     name: admins
     type: group

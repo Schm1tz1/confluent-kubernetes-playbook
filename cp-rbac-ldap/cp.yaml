@@ -53,10 +53,11 @@ spec:
   configOverrides:
     server:
       - confluent.authorizer.init.timeout.ms=600000
-    log4j:
-      # - authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer
       - default.replication.factor=3
       - min.insync.replicas=2
+      - ldap.refresh.interval.ms=15000
+    log4j:
+
       - log4j.logger.io.confluent.rest-utils=DEBUG, stdout
       - log4j.additivity.io.confluent.rest-utils=false
       - log4j.logger.io.confluent.rbacapi=DEBUG, stdout
@@ -142,14 +143,17 @@ spec:
             type: simple
           configurations:
             groupMemberAttribute: member
-            groupMemberAttributePattern: CN=(.*),DC=test,DC=com
+            groupMemberAttributePattern: uid=(.*?),.*
             groupNameAttribute: cn
-            groupObjectClass: group
-            groupSearchBase: dc=test,dc=com
-            userMemberOfAttributePattern: CN=(.*),DC=test,DC=com
-            userNameAttribute: cn
-            userObjectClass: organizationalRole
-            userSearchBase: dc=test,dc=com
+            groupObjectClass: groupOfNames
+            groupSearchBase: OU=groups,DC=confluent,DC=demo,DC=org
+            groupSearchScope: 1
+            userMemberOfAttributePattern: cn=(.*),ou=groups,.*
+            userNameAttribute: uid
+            userObjectClass: '*'
+            userSearchBase: DC=confluent,DC=demo,DC=org
+            userSearchFilter: (|(objectClass=inetOrgPerson)(objectClass=account))
+            userSearchScope: 2
           tls:
             enabled: true
         type: ldap
