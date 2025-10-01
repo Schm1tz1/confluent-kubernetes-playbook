@@ -57,7 +57,6 @@ spec:
       - min.insync.replicas=2
       - ldap.refresh.interval.ms=15000
     log4j:
-
       - log4j.logger.io.confluent.rest-utils=DEBUG, stdout
       - log4j.additivity.io.confluent.rest-utils=false
       - log4j.logger.io.confluent.rbacapi=DEBUG, stdout
@@ -182,6 +181,147 @@ spec:
         secretRef: rest-credential
 ---
 apiVersion: platform.confluent.io/v1beta1
+kind: SchemaRegistry
+metadata:
+  name: schemaregistry
+  namespace: confluent
+spec:
+  replicas: 1
+  image:
+    application: confluentinc/cp-schema-registry:7.9.1
+    init: confluentinc/confluent-init-container:2.11.1
+  tls:
+    secretRef: tls-schemaregistry
+  authorization:
+    type: rbac
+  dependencies:
+    kafka:
+      bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: credentials
+      tls:
+        enabled: true
+    mds:
+      endpoint: https://kafka.confluent.svc.cluster.local:8090
+      tokenKeyPair:
+        secretRef: mds-token
+      authentication:
+        type: bearer
+        bearer:
+          secretRef: mds-client-sr
+      tls:
+        enabled: true
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Connect
+metadata:
+  name: connect
+  namespace: confluent
+spec:
+  replicas: 1
+  image:
+    application: confluentinc/cp-server-connect:7.9.1
+    init: confluentinc/confluent-init-container:2.11.1
+  tls:
+    secretRef: tls-connect
+  authorization:
+    type: rbac
+  dependencies:
+    kafka:
+      bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: credentials
+      tls:
+        enabled: true
+    mds:
+      endpoint: https://kafka.confluent.svc.cluster.local:8090
+      tokenKeyPair:
+        secretRef: mds-token
+      authentication:
+        type: bearer
+        bearer:
+          secretRef: mds-client-connect
+      tls:
+        enabled: true
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaRestProxy
+metadata:
+  name: kafkarestproxy
+  namespace: confluent
+spec:
+  replicas: 1
+  image:
+    application: confluentinc/cp-kafka-rest:7.9.1
+    init: confluentinc/confluent-init-container:2.11.1
+  tls:
+    secretRef: tls-kafkarestproxy
+  authorization:
+    type: rbac
+  dependencies:
+    kafka:
+      bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: credentials
+      tls:
+        enabled: true
+    mds:
+      endpoint: http://kafka.confluent.svc.cluster.local:8090
+      tokenKeyPair:
+        secretRef: mds-token
+      authentication:
+        type: bearer
+        bearer:
+          secretRef: mds-client-krp
+      tls:
+        enabled: true
+    schemaRegistry:
+      url: http://schemaregistry.confluent.svc.cluster.local:8081
+      tls:
+        enabled: true
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KsqlDB
+metadata:
+  name: ksqldb
+  namespace: confluent
+spec:
+  replicas: 1
+  image:
+    application: confluentinc/cp-ksqldb-server:7.9.1
+    init: confluentinc/confluent-init-container:2.11.1
+  dataVolumeCapacity: 10Gi
+  authorization:
+    type: rbac
+  tls:
+    secretRef: tls-ksql
+  dependencies:
+    kafka:
+      bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: credentials
+      tls:
+        enabled: true
+    mds:
+      endpoint: https://kafka.confluent.svc.cluster.local:8090
+      tokenKeyPair:
+        secretRef: mds-token
+      authentication:
+        type: bearer
+        bearer:
+          secretRef: mds-client-ksql
+      tls:
+        enabled: true
+---
+apiVersion: platform.confluent.io/v1beta1
 kind: ControlCenter
 metadata:
   name: controlcenter
@@ -235,6 +375,20 @@ spec:
       tls:
         enabled: true
         secretRef: tls-controlcenter
+    schemaRegistry:
+      url: https://schemaregistry.confluent.svc.cluster.local:8081
+      tls:
+        enabled: true
+    connect:
+      - name: connect
+        url:  https://connect.confluent.svc.cluster.local:8083
+        tls:
+          enabled: true
+    ksqldb:
+      - name: ksqldb
+        url:  https://ksqldb.confluent.svc.cluster.local:8088
+        tls:
+          enabled: true
   services:
     prometheus:
        image: confluentinc/cp-enterprise-prometheus:2.0.0
