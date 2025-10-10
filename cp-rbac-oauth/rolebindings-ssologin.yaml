@@ -1,0 +1,22 @@
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: ssologin-admin
+  namespace: confluent
+spec:
+  principal:
+    type: user
+    name: ssologin
+  role: SystemAdmin
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: krp-admin
+  namespace: confluent
+spec:
+  principal:
+    type: user
+    name: krp
+  role: SystemAdmin

@@ -1,0 +1,48 @@
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ControlCenter
+metadata:
+  name: controlcenter
+  namespace: confluent
+spec:
+  license:
+    globalLicense: true
+  authorization:
+    type: rbac
+  replicas: 1
+  image:
+    application: confluentinc/cp-enterprise-control-center-next-gen:2.0.0
+    init: confluentinc/confluent-init-container:2.11.1
+  dataVolumeCapacity: 10Gi
+  tls:
+    secretRef: tls-controlcenter
+  dependencies:
+    prometheusClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9090
+      authentication:
+        type: mtls
+      tls:
+        enabled: true
+        secretRef: tls-controlcenter
+    alertManagerClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9093
+      authentication:
+        type: mtls
+      tls:
+        enabled: true
+        secretRef: alertmanager-client-tls
+  services:
+    prometheus:
+       image: confluentinc/cp-enterprise-prometheus:2.0.0
+       authentication:
+         type: mtls
+       tls:
+         secretRef: tls-controlcenter
+       pvc:
+         dataVolumeCapacity: 10Gi
+    alertmanager:
+       image: confluentinc/cp-enterprise-alertmanager:2.0.0
+       authentication:
+         type: mtls
+       tls:
+         secretRef: tls-controlcenter
