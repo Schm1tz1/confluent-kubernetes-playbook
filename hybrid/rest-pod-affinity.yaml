@@ -1,0 +1,59 @@
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaRestProxy
+metadata:
+  name: kafkarestproxy
+  namespace: confluent
+spec:
+  image:
+    application: confluentinc/cp-kafka-rest:8.0.0
+    init: confluentinc/confluent-init-container:3.0.0
+  license:
+    globalLicense: true
+  replicas: 4
+  podTemplate:
+    podSecurityContext:
+      fsGroup: 1000
+      runAsUser: 1000
+      runAsNonRoot: true
+    resources:
+      limits:
+        cpu: 1
+        memory: 2Gi
+      requests:
+        cpu: 1
+        memory: 1Gi
+    topologySpreadConstraints:
+    - maxSkew: 1
+      labelSelector:
+        matchLabels:
+          app: kafkarestproxy
+      topologyKey: topology.kubernetes.io/region
+      whenUnsatisfiable: DoNotSchedule
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - kafkarestproxy
+          topologyKey: topology.kubernetes.io/region
+  dependencies:
+    kafka:
+      bootstrapEndpoint: pkc-e8mp5.eu-west-1.aws.confluent.cloud:9092
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: ccloud-credentials
+      tls:
+        enabled: true
+        ignoreTrustStoreConfig: true 
+    schemaRegistry:
+      url: https://psrc-8vyvr.eu-central-1.aws.confluent.cloud
+      authentication:
+        type: basic
+        basic:
+          secretRef: ccloud-sr-credentials
+---

@@ -10,12 +10,19 @@ spec:
     init: confluentinc/confluent-init-container:3.0.0
   license:
     globalLicense: true
-  replicas: 2
+  replicas: 1
   podTemplate:
     podSecurityContext:
       fsGroup: 1000
       runAsUser: 1000
       runAsNonRoot: true
+    resources:
+      limits:
+        cpu: 1
+        memory: 2Gi
+      requests:
+        cpu: 1
+        memory: 1Gi
   dependencies:
     kafka:
       bootstrapEndpoint: pkc-e8mp5.eu-west-1.aws.confluent.cloud:9092

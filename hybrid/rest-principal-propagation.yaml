@@ -1,0 +1,125 @@
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: krp-jaas-config
+  namespace: confluent
+stringData:
+  # Basic auth users here:
+  basic.txt: |
+    {{API_KEY}}: {{ANY_PASSWORD}},krp-users
+    {{API_KEY_2}}: {{ANY_PASSWORD_2}},krp-users
+    bob: bobsecret,krp-users
+  # Kafka Rest block is for Basic Auth
+  # Kafka Client block is for propogation, make sure all basic auth users are ALSO defined in KafkaClient
+
+  # Starting with CP8, the PropertyFileLoginModule has a new path due to new Jetty version being used
+  restProxyUsers.jaas: |
+    KafkaRest {
+        org.eclipse.jetty.security.jaas.spi.PropertyFileLoginModule required
+        debug="true"
+        file="/mnt/secrets/krp-jaas-config/basic.txt";
+    };
+    KafkaClient {
+      org.apache.kafka.common.security.plain.PlainLoginModule required
+      username="{{API_KEY}}"
+      password="{{API_SECRET}}";  
+      org.apache.kafka.common.security.plain.PlainLoginModule required
+      username="{{API_KEY_2}}"
+      password="{{API_SECRET_2}}";
+    };
+  # Before CP8, the PropertyFileLoginModule had a different path
+  restProxyUsersPreCp8.jaas: |
+    KafkaRest {
+        org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
+        debug="true"
+        file="/mnt/secrets/krp-jaas-config/basic.txt";
+    };
+    KafkaClient {
+      org.apache.kafka.common.security.plain.PlainLoginModule required
+      username="{{API_KEY}}"
+      password="{{API_SECRET}}";  
+      org.apache.kafka.common.security.plain.PlainLoginModule required
+      username="{{API_KEY_2}}"
+      password="{{API_SECRET_2}}";
+    };
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaRestProxy
+metadata:
+  name: kafkarestproxy
+  namespace: confluent
+spec:
+  image:
+    application: confluentinc/cp-kafka-rest:8.0.0
+    init: confluentinc/confluent-init-container:3.0.0
+  license:
+    globalLicense: true
+  replicas: 1
+  podTemplate:
+    podSecurityContext:
+      fsGroup: 1000
+      runAsUser: 1000
+      runAsNonRoot: true
+    resources:
+      limits:
+        cpu: 1
+        memory: 2Gi
+      requests:
+        cpu: 1
+        memory: 1Gi
+  dependencies:
+    kafka:
+      bootstrapEndpoint: pkc-XXXXX.eu-west-1.aws.confluent.cloud:9092
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: ccloud-credentials
+      tls:
+        enabled: true
+        ignoreTrustStoreConfig: true 
+    schemaRegistry:
+      url: https://psrc-XXXXX.eu-central-1.aws.confluent.cloud
+      authentication:
+        type: basic
+        basic:
+          secretRef: ccloud-sr-credentials
+  configOverrides:
+    log4j2:
+      Configuration:
+        Loggers:
+          Root:
+            level: DEBUG
+            AppenderRef:
+            - ref: stdout
+          Logger:
+            - name: io.confluent.kafkarest
+              level: DEBUG
+              additivity: false
+              AppenderRef:
+                - ref: stdout
+            - name: io.confluent.rest-utils
+              level: DEBUG
+              additivity: false
+              AppenderRef:
+                - ref: stdout
+            - name: io.confluent.rbacapi
+              level: DEBUG
+              additivity: false
+              AppenderRef:
+                - ref: stdout
+    server:
+      - kafka.rest.resource.extension.class=io.confluent.kafkarest.security.KafkaRestSecurityResourceExtension
+
+      - confluent.rest.auth.propagate.method=JETTY_AUTH
+      - authentication.method=BASIC
+      - authentication.realm=KafkaRest
+      - authentication.roles=krp-users
+      #- authentication.roles="*" # this is also the default
+      # - client.security.protocol=SASL_SSL
+    jvm:
+      - "-Djava.security.auth.login.config=/mnt/secrets/krp-jaas-config/restProxyUsers.jaas"
+  mountedSecrets:
+    - secretRef: krp-jaas-config
+---
