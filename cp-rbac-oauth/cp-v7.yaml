@@ -152,10 +152,14 @@ spec:
           configurations:
             groupsClaimName: profile_groups
             subClaimName: sub
-            issuer: http://keycloak:8080/realms/sso_test
             jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
-            authorizeBaseEndpointUri: http://localhost:8080/realms/sso_test/protocol/openid-connect/auth
             tokenBaseEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
+            # k8s-internal URL
+            #issuer: http://keycloak:8080/realms/sso_test
+            #authorizeBaseEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/auth
+            # If accessing IdP via Ingress, use external URL via Ingress:
+            issuer: https://keycloak.k8s.internal.schmitzi.net/realms/sso_test
+            authorizeBaseEndpointUri: https://keycloak.k8s.internal.schmitzi.net/realms/sso_test/protocol/openid-connect/auth
             refreshToken: false
   dependencies:
     kafkaRest:

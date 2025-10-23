@@ -11,12 +11,26 @@ spec:
     type: rbac
   replicas: 1
   image:
-    application: confluentinc/cp-enterprise-control-center:7.9.1
+    application: confluentinc/cp-enterprise-control-center-next-gen:2.0.0
     init: confluentinc/confluent-init-container:2.11.1
   dataVolumeCapacity: 10Gi
   tls:
     secretRef: tls-controlcenter
   dependencies:
+    prometheusClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9090
+      authentication:
+        type: mtls
+      tls:
+        enabled: true
+        secretRef: tls-controlcenter
+    alertManagerClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9093
+      authentication:
+        type: mtls
+      tls:
+        enabled: true
+        secretRef: tls-controlcenter
     kafka:
       bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
       authentication:
@@ -24,6 +38,7 @@ spec:
       tls:
         enabled: true
     mds:
+      ssoProtocol: oidc
       endpoint: https://kafka.confluent.svc.cluster.local:8090
       tokenKeyPair:
         secretRef: mds-token
@@ -45,3 +60,18 @@ spec:
           type: mtls
         tls:
           enabled: true   
+  services:
+    prometheus:
+       image: confluentinc/cp-enterprise-prometheus:2.0.0
+       authentication:
+         type: mtls
+       tls:
+         secretRef: tls-controlcenter
+       pvc:
+         dataVolumeCapacity: 10Gi
+    alertmanager:
+       image: confluentinc/cp-enterprise-alertmanager:2.0.0
+       authentication:
+         type: mtls
+       tls:
+         secretRef: tls-controlcenter
