@@ -142,7 +142,7 @@ spec:
             groupNameAttribute: cn
             groupObjectClass: groupOfNames
             groupSearchBase: OU=groups,DC=confluent,DC=demo,DC=org
-            groupSearchScope: 1
+            groupSearchScope: 2
             userMemberOfAttributePattern: cn=(.*),ou=groups,.*
             userNameAttribute: uid
             userObjectClass: '*'

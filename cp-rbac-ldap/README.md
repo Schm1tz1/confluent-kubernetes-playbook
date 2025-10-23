@@ -42,4 +42,3 @@ Once Controlcenter is up and running, either add some ingress component or forwa
 kubectl port-forward -n confluent svc/controlcenter 9021:9021
 ```
 Then point you browser to thre ingress URL or to `https://localhost:9021` - accept the self-signed certificate.
-You can log in with the credentials from `fileUserPassword.txt` - for example user `testuser1` with password `password1`.
