@@ -152,7 +152,7 @@ spec:
           configurations:
             groupsClaimName: profile_groups
             subClaimName: sub
-            issuer: http://localhost:8080/realms/sso_test
+            issuer: http://keycloak:8080/realms/sso_test
             jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
             authorizeBaseEndpointUri: http://localhost:8080/realms/sso_test/protocol/openid-connect/auth
             tokenBaseEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
