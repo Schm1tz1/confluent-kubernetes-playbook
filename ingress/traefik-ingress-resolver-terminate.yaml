@@ -31,7 +31,7 @@ spec:
       - '*.schmitzi.net'
       - '*.internal.schmitzi.net'
       - '*.k8s.internal.schmitzi.net'
-    certResolver: googledomains
+    certResolver: dnsresolver
     passthrough: false 
 ---
 apiVersion: traefik.containo.us/v1alpha1
@@ -65,4 +65,4 @@ spec:
       - '*.schmitzi.net'
       - '*.internal.schmitzi.net'
       - '*.k8s.internal.schmitzi.net'
-    certResolver: googledomains
+    certResolver: dnsresolver

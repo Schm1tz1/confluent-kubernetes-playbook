@@ -1,9 +1,0 @@
-envFrom:
-  - secretRef:
-      name: googledomains-token
-certResolvers:
-  googledomains:
-    email: your-registered@email.net
-    storage: /data/acme.json
-    dnsChallenge:
-      provider: googledomains

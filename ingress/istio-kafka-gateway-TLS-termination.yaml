@@ -1,0 +1,143 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: kafka-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: tls-kafka
+      protocol: TLS
+    hosts:
+    - kafka.k8s.internal.schmitzi.net
+    tls:
+      mode: SIMPLE
+      credentialName: wildcard-certificate
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: kafka0-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: tls-kafka
+      protocol: TLS
+    hosts:
+    - kafka0.k8s.internal.schmitzi.net
+    tls:
+      mode: SIMPLE
+      credentialName: wildcard-certificate
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: kafka1-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: tls-kafka
+      protocol: TLS
+    hosts:
+    - kafka1.k8s.internal.schmitzi.net
+    tls:
+      mode: SIMPLE
+      credentialName: wildcard-certificate
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: kafka2-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: tls-kafka
+      protocol: TLS
+    hosts:
+    - kafka2.k8s.internal.schmitzi.net
+    tls:
+      mode: SIMPLE
+      credentialName: wildcard-certificate
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kafka-vs
+  namespace: confluent
+spec:
+  hosts:
+    - kafka.k8s.internal.schmitzi.net
+  gateways: 
+    - istio-system/kafka-gateway
+  tcp:
+  - route:
+    - destination:
+        host: kafka-bootstrap
+        port:
+          number: 9092
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kafka0-vs
+  namespace: confluent
+spec:
+  hosts:
+    - kafka0.k8s.internal.schmitzi.net
+  gateways: 
+    - istio-system/kafka0-gateway
+  tcp:
+  - route:
+    - destination:
+        host: kafka-0-internal
+        port:
+          number: 9092
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kafka1-vs
+  namespace: confluent
+spec:
+  hosts:
+    - kafka1.k8s.internal.schmitzi.net
+  gateways: 
+    - istio-system/kafka1-gateway
+  tcp:
+  - route:
+    - destination:
+        host: kafka-1-internal
+        port:
+          number: 9092
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kafka2-vs
+  namespace: confluent
+spec:
+  hosts:
+    - kafka2.k8s.internal.schmitzi.net
+  gateways: 
+    - istio-system/kafka2-gateway
+  tcp:
+  - route:
+    - destination:
+        host: kafka-2-internal
+        port:
+          number: 9092

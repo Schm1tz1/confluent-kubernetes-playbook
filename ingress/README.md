@@ -10,10 +10,46 @@
 Deploy CP cluster and TRaefik ingress with automated certificate management using ACME client:
 ```shell
 # (Re-)Configure and install Traefik
-vi traefik_values.yaml 
-kubectl create secret generic googledomains-token \
- -n=kube-system --from-literal=GOOGLE_DOMAINS_ACCESS_TOKEN={Your API token here}
 
+- Example config for Google Domains:
+```shell
+cat >traefik_values.yaml <<__EOF__
+envFrom:
+  - secretRef:
+      name: googledomains-token
+certResolvers:
+  dnsresolver:
+    email: your-registered@email.net
+    storage: /data/acme.json
+    dnsChallenge:
+      provider: googledomains
+__EOF__
+
+kubectl create secret generic googledomains-token \
+    -n=kube-system \
+    --from-literal=GOOGLE_DOMAINS_ACCESS_TOKEN={Your API token here}
+```
+
+- Example config for Cloudflare:
+```shell
+cat >traefik_values.yaml <<__EOF__
+envFrom:
+  - secretRef:
+      name: cloudflare-token
+certResolvers:
+  dnsresolver:
+    email: your-registered@email.net
+    storage: /data/acme.json
+    dnsChallenge:
+      provider: cloudflare
+__EOF__
+
+kubectl create secret generic cloudflare-token \
+    -n=kube-system \
+    --from-literal=CF_API_EMAIL={Your Cloudflare Email here} --from-literal=CF_API_KEY={Your Cloudflare API KEY here}
+```
+
+## Install Traefik
 helm install traefik traefik/traefik  --namespace kube-system --values traefik-values.yaml
 
 # Start Cluster

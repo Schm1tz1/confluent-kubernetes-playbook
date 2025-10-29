@@ -1,0 +1,112 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: kafka-gateway
+  namespace: confluent
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: tls-kafka
+      protocol: TLS
+    hosts:
+    - confluent/kafka.k8s.internal.schmitzi.net
+    - confluent/kafka0.k8s.internal.schmitzi.net
+    - confluent/kafka1.k8s.internal.schmitzi.net
+    - confluent/kafka2.k8s.internal.schmitzi.net
+    tls:
+      mode: PASSTHROUGH
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kafka-bootstrap-vs
+  namespace: confluent
+spec:
+  hosts:
+    - kafka.k8s.internal.schmitzi.net
+  gateways: 
+    - kafka-gateway
+  tls:
+  - match:
+    - port: 443
+      sniHosts:
+      - kafka.k8s.internal.schmitzi.net
+      gateways:
+        - kafka-gateway
+    route:
+    - destination:
+        host: kafka.confluent.svc.cluster.local
+        port:
+          number: 9092
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kafka0-vs
+  namespace: confluent
+spec:
+  hosts:
+    - kafka0.k8s.internal.schmitzi.net
+  gateways: 
+    - kafka-gateway
+  tls:
+  - match:
+    - port: 443
+      sniHosts:
+      - kafka0.k8s.internal.schmitzi.net
+      gateways:
+        - kafka-gateway
+    route:
+    - destination:
+        host: kafka-0-internal.confluent.svc.cluster.local
+        port:
+          number: 9092
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kafka1-vs
+  namespace: confluent
+spec:
+  hosts:
+    - kafka1.k8s.internal.schmitzi.net
+  gateways: 
+    - kafka-gateway
+  tls:
+  - match:
+    - port: 443
+      sniHosts:
+      - kafka1.k8s.internal.schmitzi.net
+      gateways:
+        - kafka-gateway
+    route:
+    - destination:
+        host: kafka-1-internal.confluent.svc.cluster.local
+        port:
+          number: 9092
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kafka2-vs
+  namespace: confluent
+spec:
+  hosts:
+    - kafka2.k8s.internal.schmitzi.net
+  gateways: 
+    - kafka-gateway
+  tls:
+  - match:
+    - port: 443
+      sniHosts:
+      - kafka2.k8s.internal.schmitzi.net
+      gateways:
+        - kafka-gateway
+    route:
+    - destination:
+        host: kafka-2-internal.confluent.svc.cluster.local
+        port:
+          number: 9092
