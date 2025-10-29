@@ -1,0 +1,59 @@
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: ssologin-admin
+  namespace: confluent
+spec:
+  principal:
+    type: user
+    name: ssologin
+  role: SystemAdmin
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: krp-admin
+  namespace: confluent
+spec:
+  principal:
+    type: user
+    name: krp
+  role: SystemAdmin
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: sr-kafka
+  namespace: confluent
+spec:
+  principal:
+    type: user
+    name: sr
+  resourcePatterns:
+  - name: _confluent-license
+    patternType: LITERAL
+    resourceType: Topic
+  - name: _confluent-command
+    patternType: LITERAL
+    resourceType: Topic
+  - name: _schemas
+    patternType: PREFIXED
+    resourceType: Topic
+  - name: id_schemaregistry
+    patternType: PREFIXED
+    resourceType: Group
+  role: ResourceOwner
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: registry-registry
+  namespace: confluent
+spec:
+  clustersScopeByIds:
+    schemaRegistryClusterId: id_schemaregistry_confluent
+  principal:
+    name: registry
+    type: user
+  role: SecurityAdmin
