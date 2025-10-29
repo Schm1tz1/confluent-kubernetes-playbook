@@ -110,6 +110,10 @@ spec:
       type: mtls
     tls:
       enabled: true
+  configOverrides:
+    server:
+    # This fixes HTTP 400 Invalid SNI Errors from Jetty
+      - "confluent.http.server.sni.host.check.enabled=false"
   services:
     kafkaRest:
       authentication:
@@ -202,6 +206,10 @@ spec:
     secretRef: tls-kafkarestproxy
   authorization:
     type: rbac
+  configOverrides:
+    server:
+    # This fixes HTTP 400 Invalid SNI Errors from Jetty
+      - "sni.host.check.enabled=false"
   dependencies:
     kafka:
       bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
@@ -245,6 +253,10 @@ spec:
       fsGroup: 1000
       runAsUser: 1000
       runAsNonRoot: true
+  configOverrides:
+    server:
+    # This fixes HTTP 400 Invalid SNI Errors from Jetty
+      - "sni.host.check.enabled=false"
 ---
 apiVersion: platform.confluent.io/v1beta1
 kind: ControlCenter
@@ -263,6 +275,10 @@ spec:
   dataVolumeCapacity: 10Gi
   tls:
     secretRef: tls-controlcenter
+  configOverrides:
+    server:
+    # This fixes HTTP 400 Invalid SNI Errors from Jetty
+      - "confluent.controlcenter.rest.sni.host.check.enabled=false"
   dependencies:
     prometheusClient:
       url: https://controlcenter.confluent.svc.cluster.local:9090
