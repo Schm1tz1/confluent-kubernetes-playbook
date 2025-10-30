@@ -45,8 +45,15 @@ spec:
         sslClientAuthentication: true
       tls:
         enabled: true
+    metricsClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9090
+      authentication:
+        type: mtls
+      tls:
+        enabled: true
+        secretRef: tls-kraftcontroller
   tls:
-    secretRef: tls-kraftcontroller  
+    secretRef: tls-kraftcontroller
 ---
 apiVersion: platform.confluent.io/v1beta1
 kind: Kafka
@@ -190,6 +197,13 @@ spec:
           type: mtls
       clusterRef:
         name: kraftcontroller
+    metricsClient:
+      url: https://controlcenter.confluent.svc.cluster.local:9090
+      authentication:
+        type: mtls
+      tls:
+        enabled: true
+        secretRef: tls-kafka
 ---
 apiVersion: platform.confluent.io/v1beta1
 kind: KafkaRestProxy
@@ -248,7 +262,26 @@ spec:
     application: confluentinc/cp-schema-registry:8.1.0
     init: confluentinc/confluent-init-container:3.1.0
   tls:
-    secretRef: tls-schemaregistry    
+    secretRef: tls-schemaregistry
+  authorization:
+    type: rbac
+  dependencies:
+    kafka:
+      bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
+      authentication:
+        type: mtls
+      tls:
+        enabled: true
+    mds:
+      ssoProtocol: oidc
+      endpoint: https://kafka.confluent.svc.cluster.local:8090
+      tokenKeyPair:
+        secretRef: mds-token
+      authentication:
+        type: mtls
+        sslClientAuthentication: true
+      tls:
+        enabled: true
   podTemplate:
     podSecurityContext:
       fsGroup: 1000

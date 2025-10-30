@@ -36,19 +36,33 @@ kubectl create secret generic oauth-jass \
 kubectl apply -f keycloak.yaml
 ```
 
-## Deploy CP, C3 and Rolebindings
-* Deploy minimal CP:
+* Exporting Keycloak realms:
 ```shell
-kubectl apply -f cp.yaml
+# Run inside the pod to export the reals with users
+/opt/keycloak/bin/kc.sh export --dir /tmp/ --users realm_file --realm sso_test
+
+# C3 container lacks tar command to use kubectl cp so we need to pull it manually:
+kubectl exec -it deploy/keycloak -n confluent -- cat /tmp/sso_test-realm.json >sso_test-realm.json
+```
+Note: client passwords are note exported (field will be marked `******`). You need to paste the credentals manually.
+
+## Deploy CP, C3 and Rolebindings
+* Deploy CP:
+```shell
+# For CP 8.x
+kubectl apply -f cp-v8.yaml
+
+# For CP 7.x you can chose between the old and the new controlcenter. Base infrastructur first:
+kubectl apply -f cp-v7.yaml
+# for the new controlcenter (also called C3++ or NG)
+kubectl apply -f c3-v7.yaml
+# for the old controlcenter (also called legacy C3)
+kubectl apply -f c3-legacy-v7.yaml
 ```
 Wait for brokers to be in running state.
 * Deploy Rolebindings for test users:
 ```shell
-kubectl apply -f rolebindings-ssologin.yaml
-```
-* Deploy Controlcenter (C3):
-```shell
-kubectl apply -f c3.yaml
+kubectl apply -f rolebindings.yaml
 ```
 
 ## Test C3 and log in with test user
