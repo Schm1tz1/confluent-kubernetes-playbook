@@ -35,6 +35,19 @@ spec:
 apiVersion: platform.confluent.io/v1beta1
 kind: ConfluentRolebinding
 metadata:
+  name: c3-sr-admin
+  namespace: confluent
+spec:
+  clustersScopeByIds:
+    schemaRegistryClusterId: id_schemaregistry_confluent
+  principal:
+    type: user
+    name: c3
+  role: SystemAdmin
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
   name: sr-kafka
   namespace: confluent
 spec:

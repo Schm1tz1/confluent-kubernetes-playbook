@@ -265,6 +265,12 @@ spec:
     secretRef: tls-schemaregistry
   authorization:
     type: rbac
+  authentication:
+    type: mtls
+    mtls:
+      principalMappingRules:
+        - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
+        - "DEFAULT"
   dependencies:
     kafka:
       bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
