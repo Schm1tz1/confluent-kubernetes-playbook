@@ -90,13 +90,14 @@ spec:
         enabled: true
     external:
       authentication:
-        type: oauth
-        jaasConfig:
-          secretRef: oauth-jass
-        oauthSettings:
-          groupsClaimName: groups
-          jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
-          tokenEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
+        # type: oauth
+        # jaasConfig:
+        #   secretRef: oauth-jass
+        # oauthSettings:
+        #   groupsClaimName: groups
+        #   jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
+        #   tokenEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
+        type: mtls
         mtls:
           sslClientAuthentication: "required"
           principalMappingRules:

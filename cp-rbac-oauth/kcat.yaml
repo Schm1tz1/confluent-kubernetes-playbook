@@ -48,5 +48,5 @@ data:
     security.protocol=SSL
     ssl.ca.location=/mnt/certs/ca.crt
     ssl.key.location=/mnt/certs/tls.key
-    ssl.key.password=changeme
+    # ssl.key.password=changeme
     ssl.certificate.location=/mnt/certs/tls.crt
