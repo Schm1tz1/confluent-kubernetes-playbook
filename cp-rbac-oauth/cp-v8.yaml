@@ -219,6 +219,13 @@ spec:
     init: confluentinc/confluent-init-container:3.1.0
   tls:
     secretRef: tls-kafkarestproxy
+  authentication:
+    type: mtls
+    mtls:
+      sslClientAuthentication: requested
+      principalMappingRules:
+        - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
+        - "DEFAULT"
   authorization:
     type: rbac
   configOverrides:
@@ -268,6 +275,7 @@ spec:
   authentication:
     type: mtls
     mtls:
+      sslClientAuthentication: requested
       principalMappingRules:
         - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
         - "DEFAULT"

@@ -51,7 +51,6 @@ Note: client passwords are note exported (field will be marked `******`). You ne
 ```shell
 # For CP 8.x
 kubectl apply -f cp-v8.yaml
-
 # For CP 7.x you can chose between the old and the new controlcenter. Base infrastructur first:
 kubectl apply -f cp-v7.yaml
 # for the new controlcenter (also called C3++ or NG)
@@ -71,3 +70,10 @@ Once Controlcenter is up and running, either add some ingress component or forwa
 kubectl port-forward -n confluent svc/controlcenter 9021:9021
 ```
 Then point you browser to thre ingress URL or to `https://localhost:9021` - accept the self-signed certificate.
+
+## Test Restproxy
+### mTLS AuthN
+```shell
+kubectl exec -it pod/controlcenter-0 -c controlcenter -n confluent -- \
+    /usr/bin/curl --key /mnt/sslcerts/privkey.pem --cert /mnt/sslcerts/fullchain.pem --cacert /mnt/sslcerts/cacerts.pem -X GET https://kafkarestproxy:8082
+```
