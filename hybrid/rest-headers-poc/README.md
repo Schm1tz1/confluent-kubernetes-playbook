@@ -1,0 +1,4 @@
+# REST Headers POC
+This is a small POC to demonstrate how to enforce serialization format by overriding the headers sent to Kafka Rest Proxy in yuor ingress component (here: Traefik middleware).
+When prodicung data, the Kafka Rest Proxy will select the serializer based on the header `Content-Type`. In case the headers cannot be set correctly in the REST client component, headers can be set via header overrides in the Kubernetes Ingress component as shoen in `traefik-ingress-cp.yaml`.
+The script `produce_record_rest.sh` produces the same record 3 times but with different format headers that are overwritten on ingress such that the resulting Kafka records are all in AVRO format with the same schema.

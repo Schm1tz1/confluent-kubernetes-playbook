@@ -1,0 +1,33 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: http-ingress
+  namespace: confluent
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`rest.k8s.internal.schmitzi.net`)
+      middlewares:
+        - name: avro-header
+          namespace: confluent
+      services:
+        - name: kafkarestproxy
+          port: 8082  
+  tls:
+    secretName: tls-schmitzi-ingress
+---
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: avro-header
+  namespace: confluent
+spec:
+  headers:
+    customRequestHeaders:
+      Content-Type: "application/vnd.kafka.avro.v2+json"
+    customResponseHeaders:
+      X-Custom-Response-Header: "Header-magic done."
