@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sidecar-properties
+  namespace: ccloud
+type: Opaque
+stringData:
+  logstash.conf: |
+    input {
+      file {
+        path => "/var/log/confluent/app.log"
+        start_position => "beginning"
+        sincedb_path => "/dev/null" # Use /dev/null to re-read on restart, or a persistent path
+      }
+    }
+    filter {
+      # Add any filters you need, e.g., grok, json
+    }
+    output {
+      opensearch {
+        hosts => ["http://opensearch:9200"]
+        user => "admin"                 
+        password => "PaiH54eZ4<kMz!FseW>S"
+        index => "confluent-logs-%{+YYYY.MM.dd}"
+        ssl => false # if using the logstash image by elastic you have to use ssl_enabled instead of this one
+        # ssl_enabled => false # if using the logstash image by elastic you have to use this instead the ssl config
+        ssl_certificate_verification => false
+      }
+      # Uncomment for debugging in the sidecar's logs
+      # stdout { codec => rubydebug }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sidecar-enabled
+  namespace: ccloud
+data:
+  pod-template.yaml: |
+    spec:
+      template:
+        spec:
+          containers:
+            - name: sidecar
+              image: opensearchproject/logstash-oss-with-opensearch-output-plugin:latest
+              imagePullPolicy: IfNotPresent
+              volumeMounts:
+                - name: properties-volume
+                  mountPath: /usr/share/logstash/pipeline/
+                  readOnly: true
+                - name: confluent-logs
+                  mountPath: /var/log/confluent
+                  readOnly: true
+          volumes:
+            - name: properties-volume
+              secret:
+                secretName: sidecar-properties
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Connect
+metadata:
+  name: connect
+  namespace: ccloud
+  annotations:
+    platform.confluent.io/pod-overlay-configmap-name: sidecar-enabled
+spec:
+  replicas: 1
+  spec:
+  podTemplate:
+    probe:
+      liveness:
+      readiness:
+  image:
+    application: confluentinc/cp-server-connect:8.1.0
+    init: confluentinc/confluent-init-container:3.1.0
+  configOverrides:
+    server:
+      - 'response.http.headers.config="add Cache-Control: no-cache, no-store, must-revalidate", add X-XSS-Protection: 1; mode=block, add Strict-Transport-Security: max-age=31536000; includeSubDomains, add X-Content-Type-Options: nosniff'
+      - sni.host.check.enabled=false
+    log4j2:
+      Configuration:
+        Appenders:
+          RollingFile:
+            - name: RollingFile
+              fileName: /var/log/confluent/app.log
+              filePattern: "/var/log/confluent/app-%d{yyyy-MM-dd}-%i.log.gz"
+              PatternLayout:
+                pattern: "[%d] %p %m (%c)%n"
+              Policies:
+                SizeBasedTriggeringPolicy:
+                  size: 100MB
+              DefaultRolloverStrategy:
+                max: 10
+        Loggers:
+          Root:
+            level: info
+            AppenderRef:
+              - ref: RollingFile
+  mountedVolumes:
+    volumes:
+      - name: confluent-logs
+        emptyDir: {}
+    volumeMounts:
+      - name: confluent-logs
+        mountPath: /var/log/confluent
+  license:
+    globalLicense: true
+  # build:
+  #   type: onDemand
+  #   onDemand:
+  #     plugins:
+  #       locationType: confluentHub
+  #       confluentHub:
+  #         - name: kafka-connect-datagen
+  #           owner: confluentinc
+  #           version: 0.6.0
+  dependencies:
+    kafka:
+      bootstrapEndpoint: pkc-e8mp5.eu-west-1.aws.confluent.cloud:9092
+      authentication:
+        type: plain
+        jaasConfig:
+          secretRef: ccloud-credentials
+      tls:
+        enabled: true
+        ignoreTrustStoreConfig: true 
+    schemaRegistry:
+      url: https://psrc-8vyvr.eu-central-1.aws.confluent.cloud
+      authentication:
+        type: basic
+        basic:
+          secretRef: ccloud-credentials

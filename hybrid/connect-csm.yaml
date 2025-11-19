@@ -3,7 +3,7 @@ apiVersion: platform.confluent.io/v1beta1
 kind: Connect
 metadata:
   name: connect-csm
-  namespace: confluent
+  namespace: ccloud
   annotations:
     platform.confluent.io/pod-overlay-configmap-name: csm-enabled
 spec:
@@ -14,8 +14,14 @@ spec:
       liveness:
       readiness:
   image:
-    application: confluentinc/cp-server-connect:7.4.0
-    init: confluentinc/confluent-init-container:2.6.0
+    application: confluentinc/cp-server-connect:8.1.0
+    init: confluentinc/confluent-init-container:3.1.0
+  configOverrides:
+    server:
+      - 'response.http.headers.config="add Cache-Control: no-cache, no-store, must-revalidate", add X-XSS-Protection: 1; mode=block, add Strict-Transport-Security: max-age=31536000; includeSubDomains, add X-Content-Type-Options: nosniff'
+      - sni.host.check.enabled=false
+  license:
+    globalLicense: true
   build:
     type: onDemand
     onDemand:
