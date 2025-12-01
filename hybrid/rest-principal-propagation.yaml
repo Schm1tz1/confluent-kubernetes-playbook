@@ -10,7 +10,6 @@ stringData:
   basic.txt: |
     {{API_KEY}}: {{ANY_PASSWORD}},krp-users
     {{API_KEY_2}}: {{ANY_PASSWORD_2}},krp-users
-    bob: bobsecret,krp-users
   # Kafka Rest block is for Basic Auth
   # Kafka Client block is for propogation, make sure all basic auth users are ALSO defined in KafkaClient
 
