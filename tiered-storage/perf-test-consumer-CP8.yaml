@@ -1,0 +1,50 @@
+apiVersion: v1 
+kind: ConfigMap 
+metadata:
+  name: perftest-config-consumer-${KAFKA_TOPIC}
+  namespace: confluent
+data:
+  java-client.properties: | 
+    # Required connection configs for Kafka producer, consumer, and admin
+    bootstrap.servers=kafka.confluent:9092
+    # security.protocol=SSL,SASL_PLAINTEXT
+    # sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username='...' password='...';
+    # sasl.mechanism=PLAIN
+    auto.offset.reset=earliest
+  defaults-test.sh: |
+    #!/bin/sh
+    kafka-consumer-perf-test --bootstrap-server kafka.confluent:9092 --num-records 1000000 --print-metrics --show-detailed-stats --topic ${KAFKA_TOPIC} --command-config /perftest-config-consumer/java-client.properties
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: consumer-perf-test-${KAFKA_TOPIC}
+  namespace: confluent
+spec:
+  completions: 1
+  parallelism: 1
+  template:
+    spec:
+      restartPolicy: Never
+      # imagePullSecrets:
+      # - name: docker-registry-creds
+      containers:
+      - name: cp-kafka
+        image: confluentinc/cp-server:8.2.0
+        command: ['sh', '-c', '/perftest-config-consumer/defaults-test.sh']
+        # resources:
+        #   limits:
+        #     cpu: 200m
+        #     memory: 512Mi
+        #   requests:
+        #     cpu: 10m
+        #     memory: 128Mi
+        volumeMounts:
+        - mountPath: /perftest-config-consumer/
+          name: perftest-config-consumer
+          readOnly: true
+      volumes:
+      - name: perftest-config-consumer
+        configMap:
+          name: perftest-config-consumer-${KAFKA_TOPIC}
+          defaultMode: 0777

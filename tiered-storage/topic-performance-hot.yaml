@@ -1,0 +1,12 @@
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: performance-hot
+  namespace: confluent
+spec:
+  replicas: 3
+  partitionCount: 6
+  configs:
+    cleanup.policy: "delete"
+    retention.ms: "86400000"
+    confluent.tier.enable: "false"

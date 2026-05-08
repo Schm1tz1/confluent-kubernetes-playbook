@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tiered-storage-creds
+  namespace: confluent
+type: Opaque
+stringData:
+  minio-creds: |
+    accessKey=rootuser
+    secretKey=rootpass123
+  s3-creds: EexAbQkoAAIiKMiCmtYtFYvFWKUWrbkHbtwjjKhKeDEZvKPvXFvTuAcm3hZG1CKa
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KRaftController
+metadata:
+  name: kraftcontroller
+  namespace: confluent
+spec:
+  license:
+    globalLicense: true
+  dataVolumeCapacity: 10G
+  image:
+    application: confluentinc/cp-server:8.2.0
+    init: confluentinc/confluent-init-container:3.2.2
+  replicas: 3
+  dependencies:
+    metricsClient:
+      url: http://controlcenter-next-gen.confluent.svc.cluster.local:9090
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: Kafka
+metadata:
+  name: kafka
+  namespace: confluent
+spec:
+  license:
+    globalLicense: true
+  dependencies:
+    kRaftController:
+      clusterRef:
+        name: kraftcontroller
+    metricsClient:
+      url: http://controlcenter-next-gen.confluent.svc.cluster.local:9090
+  dataVolumeCapacity: 10G
+  image:
+    application: confluentinc/cp-server:8.2.0
+    init: confluentinc/confluent-init-container:3.2.2
+  replicas: 3
+  mountedSecrets:
+    - secretRef: tiered-storage-creds
+  configOverrides:
+    server:
+      - confluent.tier.feature=true
+      - confluent.tier.enable=true
+      - confluent.tier.backend=S3
+      - confluent.tier.s3.bucket=cflt-tier
+      - confluent.tier.s3.region=us-east-1
+      - confluent.tier.s3.aws.endpoint.override=http://minio.minio.svc.cluster.local:9000
+      - confluent.tier.s3.ipv6.enabled=false
+      - confluent.tier.s3.force.path.style.access=true
+      - confluent.tier.s3.cred.file.path=/mnt/secrets/tiered-storage-creds/minio-creds
+      - confluent.tier.s3.sse.algorithm=none
+      - confluent.tier.local.hotset.ms=300000
+      # - confluent.tier.metadata.replication.factor=1
+    # For tiering of compact topics, activate below:
+      # - confluent.tier.cleaner.feature.enable=true  
+      # - confluent.tier.cleaner.enable=true
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ControlCenter
+metadata:
+  name: controlcenter-next-gen
+  namespace: confluent
+spec:
+  license:
+    globalLicense: true
+  replicas: 1
+  image:
+    application: confluentinc/cp-enterprise-control-center-next-gen:2.5.0
+    init: confluentinc/confluent-init-container:3.2.2
+  dataVolumeCapacity: 10Gi
+  dependencies:
+    prometheusClient:
+      url: http://controlcenter-next-gen.confluent.svc.cluster.local:9090
+    alertManagerClient:
+      url: http://controlcenter-next-gen.confluent.svc.cluster.local:9093
+  services:
+    prometheus:
+      image: confluentinc/cp-enterprise-prometheus:2.5.0
+      pvc:
+        dataVolumeCapacity: 10Gi
+    alertmanager:
+      image: confluentinc/cp-enterprise-alertmanager:2.5.0
+---
