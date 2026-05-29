@@ -1,0 +1,139 @@
+apiVersion: v1 
+kind: ConfigMap 
+metadata:
+  name: s3test-config
+  namespace: confluent
+data:
+  formatted-xml.py: |
+    import xml.etree.ElementTree as ET, sys
+    ns = {'s3': 'http://s3.amazonaws.com/doc/2006-03-01/'}
+    root = ET.fromstring(sys.stdin.read())
+
+    def get(tag):
+        el = root.find('s3:' + tag, ns)
+        return el.text if el is not None else 'N/A'
+
+    print('Name:      ', get('Name'))
+    print('Prefix:    ', get('Prefix'))
+    print('KeyCount:  ', get('KeyCount'))
+    print('MaxKeys:   ', get('MaxKeys'))
+    print('Truncated: ', get('IsTruncated'))
+    print()
+    for key in root.findall('s3:Contents/s3:Key', ns):
+        print(' -', key.text)
+  s3-test-list.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    : "${ACCESS_KEY:?missing ACCESS_KEY}"
+    : "${SECRET_KEY:?missing SECRET_KEY}"
+    : "${REGION:?missing REGION}"
+    : "${ENDPOINT:?missing ENDPOINT}"
+    : "${BUCKET:?missing BUCKET}"
+    : "${PREFIX:?missing PREFIX}"
+
+    extra_headers=()
+    if [[ -n "${SESSION_TOKEN:-}" ]]; then
+      extra_headers+=(-H "x-amz-security-token: ${SESSION_TOKEN}")
+    fi
+
+    curl -sS --http1.1 \
+      --aws-sigv4 "aws:amz:${REGION}:s3" \
+      --user "${ACCESS_KEY}:${SECRET_KEY}" \
+      "${extra_headers[@]}" \
+      "${ENDPOINT}/${BUCKET}?list-type=2&prefix=${PREFIX}&max-keys=20" \
+      -D /tmp/hcp-listobjects.headers \
+      -o /tmp/hcp-listobjects.xml
+
+    echo "Saved headers to /tmp/hcp-listobjects.headers"
+    echo "Saved body to /tmp/hcp-listobjects.xml"
+    echo
+    cat /tmp/hcp-listobjects.xml | python3 /s3test-config/formatted-xml.py
+  s3-test-list-versions.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    : "${ACCESS_KEY:?missing ACCESS_KEY}"
+    : "${SECRET_KEY:?missing SECRET_KEY}"
+    : "${REGION:?missing REGION}"
+    : "${ENDPOINT:?missing ENDPOINT}"
+    : "${BUCKET:?missing BUCKET}"
+    : "${PREFIX:?missing PREFIX}"
+
+    extra_headers=()
+    if [[ -n "${SESSION_TOKEN:-}" ]]; then
+      extra_headers+=(-H "x-amz-security-token: ${SESSION_TOKEN}")
+    fi
+
+    curl -sS --http1.1 \
+      --aws-sigv4 "aws:amz:${REGION}:s3" \
+      --user "${ACCESS_KEY}:${SECRET_KEY}" \
+      "${extra_headers[@]}" \
+      "${ENDPOINT}/${BUCKET}?versions=&prefix=${PREFIX}&max-keys=20&encoding-type=url" \
+      -D /tmp/hcp-listversions.headers \
+      -o /tmp/hcp-listversions.xml
+
+    echo "Saved headers to /tmp/hcp-listversions.headers"
+    echo "Saved body to /tmp/hcp-listversions.xml"
+    echo
+    cat /tmp/hcp-listversions.xml | python3 /s3test-config/formatted-xml.py
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s3test-listing
+  namespace: confluent
+spec:
+  completions: 1
+  parallelism: 1
+  template:
+    spec:
+      restartPolicy: Never
+      # imagePullSecrets:
+      # - name: docker-registry-creds
+      containers:
+      - name: cp-kafka
+        image: nicolaka/netshoot
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          echo "*******************************"
+          echo "* Performing simple list-test *"
+          echo "*******************************"
+          /s3test-config/s3-test-list.sh
+          echo "**********************************"
+          echo "* Performing versioned list-test *"
+          echo "**********************************"
+          /s3test-config/s3-test-list-versions.sh
+          echo "**********************************"
+        env:
+        - name: ACCESS_KEY
+          value: 'rootuser'
+        - name: SECRET_KEY
+          value: 'rootpass123'
+        - name: REGION
+          value: 'us-east-1'
+        - name: ENDPOINT
+          value: 'http://minio.minio.svc.cluster.local:9000'
+        - name: BUCKET
+          value: 'cflt-tier'
+        - name: PREFIX
+          value: '0/0_uyvEfoQyaLQIgh5Dx2Mw/IJs1i0b5SxK8tWjkBXXfCQ/4'
+        - name: SESSION_TOKEN
+          value: ''
+        # resources:
+        #   limits:
+        #     cpu: 200m
+        #     memory: 512Mi
+        #   requests:
+        #     cpu: 10m
+        #     memory: 128Mi
+        volumeMounts:
+        - mountPath: /s3test-config/
+          name: s3test-config
+          readOnly: true
+      volumes:
+      - name: s3test-config
+        configMap:
+          name: s3test-config
+          defaultMode: 0777
