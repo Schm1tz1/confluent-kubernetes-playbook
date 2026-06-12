@@ -1,0 +1,69 @@
+# ArgoCD Application with Automated Orphan Cleanup
+#
+# This example shows how to integrate the PostSync cleanup hook
+# to automatically delete orphaned KafkaTopics after each sync.
+#
+# The hook compensates for the ArgoCD v3.0+ pruning bug where resources
+# with finalizers and owner references are not automatically deleted.
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-topics
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/your-org/your-repo
+    targetRevision: main
+    path: kafka-topics
+
+    # If using a directory with the cleanup hook Job
+    directory:
+      recurse: true
+      # The hook Job YAML should be in this directory or a subdirectory
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: confluent
+
+  # Ignore owner references to prevent drift detection
+  ignoreDifferences:
+  - group: platform.confluent.io
+    kind: KafkaTopic
+    jsonPointers:
+    - /metadata/ownerReferences
+
+  syncPolicy:
+    automated:
+      prune: true      # This doesn't work due to ArgoCD bug, but keep enabled
+      selfHeal: true
+
+    syncOptions:
+    # Attempt background propagation (doesn't help with the bug, but correct config)
+    - CreateNamespace=false
+    - PrunePropagationPolicy=background
+
+    # Allow the hook Job to be deleted and recreated
+    - Replace=true
+
+  # Sync window (optional) - can restrict when syncs occur
+  # syncWindows:
+  # - kind: allow
+  #   schedule: '0 * * * *'
+  #   duration: 1h
+
+---
+# Note: The PostSync cleanup hook Job should be in your Git repository
+# alongside the KafkaTopic resources. ArgoCD will deploy it as part of
+# the Application, and it will run automatically after each sync.
+#
+# Place the hook YAML from post-sync-cleanup-hook.yaml in your repo at:
+#   kafka-topics/hooks/cleanup-orphans.yaml
+#
+# Or anywhere under the spec.source.path that ArgoCD will discover.

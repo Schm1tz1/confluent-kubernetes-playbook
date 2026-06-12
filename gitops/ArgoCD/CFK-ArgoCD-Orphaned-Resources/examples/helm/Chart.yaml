@@ -1,0 +1,14 @@
+apiVersion: v2
+name: argocd-orphan-cleanup
+description: >-
+  ArgoCD PostSync hook (or CronJob) that deletes KafkaTopic resources orphaned by
+  the ArgoCD v3.0+ prune bug (resources with CFK finalizers + owner references).
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - argocd
+  - confluent
+  - kafkatopic
+  - cleanup
+home: https://github.com/argoproj/argo-cd/issues/23687

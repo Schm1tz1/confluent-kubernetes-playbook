@@ -1,0 +1,21 @@
+{{- if .Values.hook.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # generateName works with Helm (Helm doesn't require a fixed name like Kustomize).
+  # Each sync renders + applies a uniquely-named Job, so the hook runs every time.
+  generateName: cleanup-orphaned-topics-
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: {{ .Values.hook.deletePolicy }}
+spec:
+  ttlSecondsAfterFinished: {{ .Values.hook.ttlSecondsAfterFinished }}
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: argocd-orphan-cleanup
+    spec:
+      {{- include "cleanup.podSpec" . | nindent 6 }}
+{{- end }}

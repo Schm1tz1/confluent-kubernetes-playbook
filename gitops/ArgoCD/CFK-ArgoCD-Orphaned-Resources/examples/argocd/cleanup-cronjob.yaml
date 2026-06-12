@@ -1,0 +1,223 @@
+# ArgoCD Orphan Cleanup - CronJob Variant
+#
+# An ALTERNATIVE to the PostSync hook. Instead of running after each sync, this
+# CronJob reconciles orphaned KafkaTopics on a fixed schedule.
+#
+# WHY USE THIS INSTEAD OF THE HOOK?
+#   - Kustomize-friendly: fixed name, no generateName issues
+#   - The CronJob controller generates uniquely-named Jobs for you (no name collisions)
+#   - Robust: catches orphans even if a sync was missed or the hook failed
+#   - Decoupled from sync lifecycle
+#
+# TRADE-OFF:
+#   - Cleanup is periodic (up to `schedule` interval of latency), not immediate
+#
+# DEPLOYMENT:
+#   1. Deploy RBAC first:  kubectl apply -f cleanup-hook-rbac.yaml
+#   2. Apply this CronJob (directly, via Kustomize, or as an ArgoCD-managed resource)
+#
+# NOTE: This is NOT an ArgoCD hook - it has no argocd.argoproj.io/hook annotation.
+#       It runs on its own schedule, independent of ArgoCD syncs.
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-orphaned-topics
+  namespace: argocd
+spec:
+  # How often to reconcile orphans (cron syntax). Every 5 minutes by default.
+  schedule: "*/5 * * * *"
+
+  # Don't start a new run if the previous one is still going
+  concurrencyPolicy: Forbid
+
+  # Keep a small history for log inspection
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+
+  jobTemplate:
+    spec:
+      # Auto-clean completed Jobs after 5 minutes
+      ttlSecondsAfterFinished: 300
+      backoffLimit: 0
+
+      template:
+        metadata:
+          labels:
+            app: argocd-orphan-cleanup
+        spec:
+          serviceAccountName: argocd-orphan-cleanup
+          restartPolicy: Never
+
+          containers:
+          - name: cleanup-orphans
+            # Alpine-based image with kubectl + jq
+            image: alpine/k8s:1.28.13
+            imagePullPolicy: IfNotPresent
+
+            env:
+            # REQUIRED: Customize these for your environment
+            - name: APP_NAME
+              value: "kafka-topics"        # Your ArgoCD Application name
+            - name: APP_NAMESPACE
+              value: "argocd"              # ArgoCD namespace (usually "argocd")
+            - name: TARGET_NAMESPACE
+              value: "confluent"           # Where your KafkaTopics live
+
+            # OPTIONAL: Advanced settings
+            - name: RESOURCE_KIND
+              value: "KafkaTopic"          # Resource type (don't change)
+            - name: DRY_RUN
+              value: "false"               # Set to "true" to test without deleting
+            - name: LOG_TIMESTAMPS
+              value: "true"                # Add timestamps to logs
+
+            command:
+            - /bin/sh
+            - -c
+            - |
+              #!/bin/sh
+              set -e
+
+              # Logging function with optional timestamps
+              log() {
+                if [ "$LOG_TIMESTAMPS" = "true" ]; then
+                  echo "[$(date -u +"%Y-%m-%d %H:%M:%S UTC")] $*"
+                else
+                  echo "$*"
+                fi
+              }
+
+              log "=================================================="
+              log "ArgoCD Orphan Cleanup (CronJob)"
+              log "=================================================="
+              log "Application: $APP_NAME (namespace: $APP_NAMESPACE)"
+              log "Target: $RESOURCE_KIND resources in namespace: $TARGET_NAMESPACE"
+              log "Dry Run: $DRY_RUN"
+              log ""
+
+              # Install jq if not available (Alpine auto-installs)
+              if ! command -v jq >/dev/null 2>&1; then
+                log "Installing jq..."
+                if ! apk add --no-cache jq >/dev/null 2>&1; then
+                  log "ERROR: Failed to install jq"
+                  exit 1
+                fi
+              fi
+
+              # Get ArgoCD Application status
+              log "Fetching ArgoCD Application status..."
+              APP_JSON=$(kubectl get application "$APP_NAME" -n "$APP_NAMESPACE" -o json 2>/dev/null || echo "")
+
+              if [ -z "$APP_JSON" ]; then
+                log "ERROR: Application $APP_NAME not found in namespace $APP_NAMESPACE"
+                exit 1
+              fi
+
+              # Extract resources tracked by ArgoCD
+              log "Extracting tracked resources..."
+              TRACKED=$(echo "$APP_JSON" | jq -r \
+                --arg kind "$RESOURCE_KIND" \
+                '.status.resources[]? | select(.kind==$kind) | .name' | sort || echo "")
+
+              if [ -z "$TRACKED" ]; then
+                log "No $RESOURCE_KIND resources tracked by ArgoCD"
+                TRACKED_COUNT=0
+              else
+                TRACKED_COUNT=$(echo "$TRACKED" | wc -l | tr -d ' ')
+                log "ArgoCD is tracking $TRACKED_COUNT $RESOURCE_KIND resource(s):"
+                echo "$TRACKED" | sed 's/^/  - /'
+              fi
+              log ""
+
+              # Get resources in cluster with ArgoCD tracking annotation
+              TRACKING_ID_PATTERN="$APP_NAME:"
+              log "Fetching $RESOURCE_KIND resources from cluster..."
+              ANNOTATED=$(kubectl get kafkatopic -n "$TARGET_NAMESPACE" -o json 2>/dev/null | \
+                jq -r --arg pattern "$TRACKING_ID_PATTERN" \
+                '.items[]? | select(.metadata.annotations."argocd.argoproj.io/tracking-id"? | contains($pattern)) | .metadata.name' | sort || echo "")
+
+              if [ -z "$ANNOTATED" ]; then
+                log "No $RESOURCE_KIND resources found with ArgoCD tracking annotation"
+                log "Nothing to clean up"
+                exit 0
+              fi
+
+              ANNOTATED_COUNT=$(echo "$ANNOTATED" | wc -l | tr -d ' ')
+              log "Found $ANNOTATED_COUNT $RESOURCE_KIND resource(s) with ArgoCD tracking annotation:"
+              echo "$ANNOTATED" | sed 's/^/  - /'
+              log ""
+
+              # Find orphans: resources with tracking annotation but NOT in ArgoCD's tracked list
+              if [ -z "$TRACKED" ]; then
+                ORPHANS="$ANNOTATED"
+              else
+                ORPHANS=$(comm -13 <(echo "$TRACKED") <(echo "$ANNOTATED") || echo "")
+              fi
+
+              if [ -z "$ORPHANS" ]; then
+                log "✅ No orphaned resources found - all annotated resources are tracked by ArgoCD"
+                exit 0
+              fi
+
+              ORPHAN_COUNT=$(echo "$ORPHANS" | wc -l | tr -d ' ')
+              log "=================================================="
+              log "⚠️  Found $ORPHAN_COUNT orphaned $RESOURCE_KIND resource(s):"
+              log "=================================================="
+              echo "$ORPHANS" | sed 's/^/  - /'
+              log ""
+
+              if [ "$DRY_RUN" = "true" ]; then
+                log "DRY RUN MODE - Would delete the above resources"
+                log "Set DRY_RUN=false to actually delete orphans"
+                exit 0
+              fi
+
+              # Delete orphaned resources
+              log "Deleting orphaned resources..."
+              DELETED=0
+              FAILED=0
+
+              for topic in $ORPHANS; do
+                log "Deleting: $topic"
+
+                OUTPUT=$(kubectl delete kafkatopic "$topic" -n "$TARGET_NAMESPACE" \
+                  --cascade=foreground \
+                  --timeout=60s 2>&1)
+                EXIT_CODE=$?
+
+                echo "$OUTPUT" | grep -v "reflector.go" | grep -v "Failed to watch" || true
+
+                if [ $EXIT_CODE -eq 0 ]; then
+                  log "  ✅ Deleted successfully"
+                  DELETED=$((DELETED + 1))
+                elif echo "$OUTPUT" | grep -q "timed out waiting"; then
+                  log "  ❌ Deletion timed out after 60s - CFK operator not processing finalizer!"
+                  log "     Check: kubectl logs -n confluent -l app=confluent-operator"
+                  FAILED=$((FAILED + 1))
+                elif echo "$OUTPUT" | grep -q "not found"; then
+                  log "  ✅ Already deleted"
+                  DELETED=$((DELETED + 1))
+                else
+                  log "  ❌ Failed to delete: $OUTPUT"
+                  FAILED=$((FAILED + 1))
+                fi
+              done
+
+              log ""
+              log "=================================================="
+              log "Cleanup Summary"
+              log "=================================================="
+              log "Tracked by ArgoCD: $TRACKED_COUNT"
+              log "Found in cluster:  $ANNOTATED_COUNT"
+              log "Orphans detected:  $ORPHAN_COUNT"
+              log "Successfully deleted: $DELETED"
+              log "Failed to delete:     $FAILED"
+              log "=================================================="
+
+              if [ $FAILED -gt 0 ]; then
+                log "⚠️  Some deletions failed - manual intervention may be required"
+                exit 1
+              fi
+
+              log "✅ Cleanup completed"

@@ -1,0 +1,83 @@
+# Helm values for ArgoCD chart
+# Use this if you're installing ArgoCD via Helm and want to define
+# Applications directly in the values file
+
+# Global resource customizations to ignore owner references on KafkaTopics
+server:
+  config:
+    # Apply ignoreDifferences globally to all KafkaTopic resources
+    resource.customizations.ignoreDifferences.platform.confluent.io_KafkaTopic: |
+      jsonPointers:
+      - /metadata/ownerReferences
+
+# Define Applications
+applications:
+  # KafkaTopic management application
+  kafka-topics:
+    project: default
+
+    source:
+      repoURL: https://github.com/your-org/your-repo
+      targetRevision: main
+      path: kafka-topics
+
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: dc1
+
+    # Ignore owner references added by the operator
+    ignoreDifferences:
+    - group: platform.confluent.io
+      kind: KafkaTopic
+      jsonPointers:
+      - /metadata/ownerReferences
+
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+      syncOptions:
+      - CreateNamespace=false
+      - PrunePropagationPolicy=background  # Bypass blockOwnerDeletion
+
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 3m
+
+    # Ensure proper cleanup
+    metadata:
+      finalizers:
+      - resources-finalizer.argocd.argoproj.io
+
+  # Additional applications can be defined here
+  # kafka-topics-dc2:
+  #   project: default
+  #   source:
+  #     repoURL: https://github.com/your-org/your-repo
+  #     targetRevision: main
+  #     path: kafka-topics-dc2
+  #   destination:
+  #     server: https://kubernetes.default.svc
+  #     namespace: dc2
+  #   ignoreDifferences:
+  #   - group: platform.confluent.io
+  #     kind: KafkaTopic
+  #     jsonPointers:
+  #     - /metadata/ownerReferences
+  #   syncPolicy:
+  #     automated:
+  #       prune: true
+  #       selfHeal: true
+  #     syncOptions:
+  #     - PrunePropagationPolicy=background
+
+# Other ArgoCD Helm chart configurations
+# repoServer:
+#   resources:
+#     limits:
+#       cpu: 1
+#       memory: 1Gi

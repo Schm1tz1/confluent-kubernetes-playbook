@@ -1,0 +1,29 @@
+# Example Kustomization for KafkaTopics with Cleanup Hook
+#
+# This kustomization.yaml should be at the root of your ArgoCD Application path.
+# The cleanup hook must be explicitly listed in the resources.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Set the namespace for all resources (optional)
+namespace: confluent
+
+resources:
+# Cleanup hook - can be in subdirectory if listed explicitly
+- hooks/cleanup-hook.yaml
+
+# Your KafkaTopic resources (add one line per topic file)
+- topics/topic-a.yaml
+# - topics/topic-b.yaml
+# - topics/topic-c.yaml
+
+# Note: Paths are relative to this kustomization.yaml file
+
+# Optional: Add common labels to all resources
+# Note: 'commonLabels' is deprecated in newer Kustomize - prefer 'labels' below
+labels:
+- pairs:
+    app: kafka-topics
+    managed-by: argocd
+  includeSelectors: false

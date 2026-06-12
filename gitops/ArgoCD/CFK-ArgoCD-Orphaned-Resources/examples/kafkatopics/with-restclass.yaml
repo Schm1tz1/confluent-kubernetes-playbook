@@ -1,0 +1,40 @@
+# KafkaTopic with KafkaRestClassRef
+#
+# This approach uses a KafkaRestClass to configure how to connect
+# to the Kafka cluster. This is the recommended approach when:
+# - You have multiple Kafka clusters
+# - You need to configure authentication/TLS
+# - You want to share REST API configuration across resources
+#
+# First, create a KafkaRestClass (usually done separately):
+#
+# apiVersion: platform.confluent.io/v1beta1
+# kind: KafkaRestClass
+# metadata:
+#   name: default
+#   namespace: dc1
+# spec:
+#   kafkaClusterRef:
+#     name: kafka
+#     namespace: dc1
+
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: orders
+  namespace: dc1
+spec:
+  # Reference to KafkaRestClass
+  kafkaRestClassRef:
+    name: default      # Name of the KafkaRestClass
+    namespace: dc1     # Must be in same namespace as KafkaTopic
+
+  replicas: 3
+  partitionCount: 12
+
+  configs:
+    cleanup.policy: delete
+    retention.ms: "2592000000"    # 30 days
+    compression.type: snappy
+    min.insync.replicas: "2"
+    max.message.bytes: "1048576"  # 1MB max message size

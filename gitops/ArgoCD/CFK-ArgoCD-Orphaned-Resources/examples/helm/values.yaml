@@ -1,0 +1,40 @@
+# Values for the argocd-orphan-cleanup chart.
+
+# Image containing kubectl + jq (Alpine auto-installs jq if missing)
+image: alpine/k8s:1.28.13
+imagePullPolicy: IfNotPresent
+
+# Namespace where the cleanup Job/CronJob runs (usually argocd)
+namespace: argocd
+
+serviceAccount:
+  # Create the ServiceAccount + ClusterRole + ClusterRoleBinding as part of this chart.
+  # Set to false if you deployed RBAC separately (examples/argocd/cleanup-hook-rbac.yaml).
+  create: true
+  name: argocd-orphan-cleanup
+
+# Cleanup behavior (shared by both hook and cronjob modes)
+config:
+  appName: kafka-topics        # Your ArgoCD Application name
+  appNamespace: argocd         # ArgoCD namespace
+  targetNamespace: confluent   # Where your KafkaTopics live
+  resourceKind: KafkaTopic     # Resource type (don't change)
+  dryRun: false                # true = log what would be deleted, delete nothing
+  logTimestamps: true
+
+# ---------------------------------------------------------------------------
+# Choose ONE mode (or run both). Hook = immediate after sync. CronJob = periodic.
+# ---------------------------------------------------------------------------
+
+# Mode A: ArgoCD PostSync hook (runs after every sync)
+# Uses generateName, which works fine with Helm (unlike Kustomize).
+hook:
+  enabled: true
+  deletePolicy: HookSucceeded   # auto-delete after success
+  ttlSecondsAfterFinished: 1800
+
+# Mode B: CronJob (periodic reconciliation, decoupled from sync)
+cronjob:
+  enabled: false
+  schedule: "*/5 * * * *"
+  ttlSecondsAfterFinished: 300

@@ -1,0 +1,31 @@
+# Compacted KafkaTopic example
+#
+# Compacted topics are useful for:
+# - Change data capture (CDC) patterns
+# - State stores
+# - Configuration or reference data
+#
+# Kafka retains only the latest value for each key
+
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: inventory-snapshots
+  namespace: dc1
+spec:
+  replicas: 3
+  partitionCount: 3
+
+  configs:
+    # Use log compaction instead of time-based retention
+    cleanup.policy: compact
+
+    # Compaction-specific settings
+    min.compaction.lag.ms: "0"              # Compact immediately
+    delete.retention.ms: "86400000"         # Keep tombstones for 1 day
+    segment.ms: "3600000"                   # New segment every hour
+    min.cleanable.dirty.ratio: "0.5"        # Trigger compaction at 50% dirty
+
+    # General settings
+    compression.type: snappy
+    min.insync.replicas: "2"

@@ -1,0 +1,89 @@
+# ArgoCD Pre-Delete Hook to remove owner references before deletion
+#
+# WARNING: This is a workaround and NOT RECOMMENDED
+# Use the standard ignoreDifferences + PrunePropagationPolicy approach instead
+#
+# This hook runs before ArgoCD deletes resources and manually removes
+# the owner references that block deletion
+#
+# Requirements:
+# - ServiceAccount with RBAC permissions to patch KafkaTopics
+# - kubectl image available
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-cleanup
+  namespace: dc1
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argocd-cleanup
+  namespace: dc1
+rules:
+- apiGroups: ["platform.confluent.io"]
+  resources: ["kafkatopics"]
+  verbs: ["get", "list", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-cleanup
+  namespace: dc1
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argocd-cleanup
+subjects:
+- kind: ServiceAccount
+  name: argocd-cleanup
+  namespace: dc1
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cleanup-kafkatopic-ownerrefs
+  namespace: dc1
+  annotations:
+    # Run this job before ArgoCD deletes resources
+    argocd.argoproj.io/hook: PreDelete
+    # Delete the job after it succeeds
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 300  # Clean up job 5 minutes after completion
+  template:
+    spec:
+      serviceAccountName: argocd-cleanup
+      restartPolicy: Never
+      containers:
+      - name: remove-ownerrefs
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Removing owner references from KafkaTopics in namespace dc1..."
+
+          # Get all KafkaTopics in the namespace
+          topics=$(kubectl get kafkatopic -n dc1 -o name)
+
+          if [ -z "$topics" ]; then
+            echo "No KafkaTopics found in namespace dc1"
+            exit 0
+          fi
+
+          # Remove owner references from each topic
+          for topic in $topics; do
+            echo "Processing $topic..."
+            kubectl patch $topic -n dc1 --type=json \
+              -p='[{"op": "remove", "path": "/metadata/ownerReferences"}]' \
+              2>/dev/null || echo "  No owner references to remove for $topic"
+          done
+
+          echo "Owner reference cleanup complete"

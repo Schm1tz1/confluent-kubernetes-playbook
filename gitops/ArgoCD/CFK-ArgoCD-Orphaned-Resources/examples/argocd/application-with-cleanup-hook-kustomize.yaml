@@ -1,0 +1,73 @@
+# ArgoCD Application with Automated Orphan Cleanup (Kustomize)
+#
+# This example shows how to integrate the PostSync cleanup hook
+# when using Kustomize to manage your KafkaTopic resources.
+#
+# The hook compensates for the ArgoCD v3.0+ pruning bug where resources
+# with finalizers and owner references are not automatically deleted.
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-topics
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/your-org/your-repo
+    targetRevision: main
+    path: kafka-topics
+
+    # Using Kustomize
+    kustomize:
+      # Optional: set namespace
+      # namespace: confluent
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: confluent
+
+  # Ignore owner references to prevent drift detection
+  ignoreDifferences:
+  - group: platform.confluent.io
+    kind: KafkaTopic
+    jsonPointers:
+    - /metadata/ownerReferences
+
+  syncPolicy:
+    automated:
+      prune: true      # This doesn't work due to ArgoCD bug, but keep enabled
+      selfHeal: true
+
+    syncOptions:
+    - CreateNamespace=false
+    - PrunePropagationPolicy=background
+
+---
+# For Kustomize, your repository structure should be:
+#
+# kafka-topics/
+# ├── kustomization.yaml      # Kustomize config
+# ├── cleanup-hook.yaml       # The cleanup hook Job (at root level)
+# ├── topic-a.yaml
+# ├── topic-b.yaml
+# └── topic-c.yaml
+#
+# In your kustomization.yaml:
+#
+# apiVersion: kustomize.config.k8s.io/v1beta1
+# kind: Kustomization
+#
+# resources:
+# - cleanup-hook.yaml    # Include the hook
+# - topic-a.yaml
+# - topic-b.yaml
+# - topic-c.yaml
+#
+# The hook Job must be at the same level as kustomization.yaml or in the resources list.
+# Do NOT put it in a subdirectory that's not listed in resources.

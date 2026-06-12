@@ -1,0 +1,72 @@
+# ArgoCD ApplicationSet for managing KafkaTopics across multiple clusters/environments
+#
+# This is useful when you have:
+# - Multiple Kafka clusters (dc1, dc2, dc3)
+# - Multiple environments (dev, staging, prod)
+# - Multiple regions
+#
+# The ApplicationSet will generate one Application per cluster/environment
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kafka-topics
+  namespace: argocd
+spec:
+  # Define the list of clusters/environments
+  generators:
+  - list:
+      elements:
+      - cluster: dc1
+        namespace: dc1
+        repoPath: kafka-topics/dc1
+      - cluster: dc2
+        namespace: dc2
+        repoPath: kafka-topics/dc2
+      # Add more clusters as needed
+      # - cluster: dc3
+      #   namespace: dc3
+      #   repoPath: kafka-topics/dc3
+
+  # Template for generating Applications
+  template:
+    metadata:
+      name: 'kafka-topics-{{cluster}}'
+      finalizers:
+      - resources-finalizer.argocd.argoproj.io
+
+    spec:
+      project: default
+
+      source:
+        repoURL: https://github.com/your-org/your-repo
+        targetRevision: main
+        path: '{{repoPath}}'
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+
+      # CRITICAL: Ignore owner references for all generated Applications
+      ignoreDifferences:
+      - group: platform.confluent.io
+        kind: KafkaTopic
+        jsonPointers:
+        - /metadata/ownerReferences
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+
+        syncOptions:
+        - CreateNamespace=false
+        # CRITICAL: Use background propagation to bypass blockOwnerDeletion
+        - PrunePropagationPolicy=background
+
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

@@ -1,0 +1,71 @@
+# Multi-source ArgoCD Application (ArgoCD v2.6+)
+#
+# Use this when your KafkaTopics and the cleanup hook live in DIFFERENT repos.
+# One Application renders BOTH sources together, so the PostSync hook from the
+# cleanup chart runs on every sync of the topics — without copying the hook into
+# the topics repo.
+#
+# Source 1: your topics repo (Kustomize or plain manifests)
+# Source 2: the cleanup Helm chart (this repo, examples/helm), hook mode
+#
+# Why Helm for the hook source: Helm supports generateName, so each sync renders a
+# uniquely-named hook Job and it runs every time. (Kustomize rejects generateName,
+# which is why the Kustomize path uses a fixed name + HookSucceeded instead.)
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: topic-purge
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  sources:
+  # --- Source 1: your KafkaTopics ---
+  - repoURL: https://github.com/your-org/your-repo
+    targetRevision: HEAD
+    path: .
+
+  # --- Source 2: the cleanup hook (Helm chart from a separate repo) ---
+  - repoURL: https://github.com/your-org/your-repo
+    targetRevision: HEAD
+    path: examples/helm
+    helm:
+      values: |
+        config:
+          appName: topic-purge
+          appNamespace: argocd
+          targetNamespace: confluent
+        # Run both: hook cleans up immediately after each sync; CronJob is a
+        # periodic safety net for missed/failed syncs. Safe to overlap — the
+        # script only deletes orphans (a concurrent run sees "not found").
+        hook:
+          enabled: true
+        cronjob:
+          enabled: true
+          schedule: "*/5 * * * *"
+        # RBAC is deployed once to the cluster out-of-band; don't recreate it here.
+        serviceAccount:
+          create: false
+          name: argocd-orphan-cleanup
+
+  destination:
+    name: in-cluster
+    namespace: confluent
+
+  # Prevents drift detection on the CFK-managed owner references.
+  ignoreDifferences:
+  - group: platform.confluent.io
+    kind: KafkaTopic
+    jsonPointers:
+    - /metadata/ownerReferences
+
+  syncPolicy:
+    automated:
+      prune: true      # Does not prune CFK topics (the bug) — the hook compensates.
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    - PrunePropagationPolicy=background

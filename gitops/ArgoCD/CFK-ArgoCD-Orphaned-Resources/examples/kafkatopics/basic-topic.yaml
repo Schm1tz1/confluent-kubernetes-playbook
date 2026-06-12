@@ -1,0 +1,28 @@
+# Basic KafkaTopic example
+#
+# This is the simplest KafkaTopic configuration.
+# The operator will auto-discover the Kafka cluster in the same namespace.
+#
+# No special configuration is needed when using the ArgoCD setup
+# from examples/argocd/ - the operator will add owner references
+# but ArgoCD will ignore them.
+
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: my-topic
+  namespace: dc1
+spec:
+  # Number of replicas per partition
+  replicas: 3
+
+  # Number of partitions
+  partitionCount: 6
+
+  # Topic-level configuration
+  # See: https://kafka.apache.org/documentation/#topicconfigs
+  configs:
+    cleanup.policy: delete
+    retention.ms: "86400000"      # 1 day retention
+    compression.type: lz4         # Use LZ4 compression
+    min.insync.replicas: "2"      # Require 2 replicas for acks=all

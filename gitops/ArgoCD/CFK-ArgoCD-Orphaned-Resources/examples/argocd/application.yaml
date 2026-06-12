@@ -1,0 +1,58 @@
+# ArgoCD Application CRD for managing KafkaTopics
+#
+# This configuration allows ArgoCD to properly manage KafkaTopic resources
+# even though the CFK operator adds owner references with blockOwnerDeletion=true
+#
+# Key features:
+# - Ignores operator-managed owner references
+# - Uses background propagation to bypass blockOwnerDeletion
+# - Enables automated sync and pruning
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-topics
+  namespace: argocd
+  finalizers:
+  # Ensures ArgoCD properly cleans up resources when this Application is deleted
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/your-org/your-repo
+    targetRevision: main
+    path: kafka-topics
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dc1
+
+  # CRITICAL: Ignore owner references added by CFK operator
+  # Without this, ArgoCD will constantly try to remove the owner reference
+  # and show the application as OutOfSync
+  ignoreDifferences:
+  - group: platform.confluent.io
+    kind: KafkaTopic
+    jsonPointers:
+    - /metadata/ownerReferences
+
+  syncPolicy:
+    automated:
+      prune: true      # Automatically delete resources removed from Git
+      selfHeal: true   # Automatically sync when cluster state drifts
+
+    syncOptions:
+    - CreateNamespace=false
+    # CRITICAL: Use background propagation to bypass blockOwnerDeletion
+    # Without this, ArgoCD cannot delete KafkaTopics because the operator
+    # sets blockOwnerDeletion=true in the owner reference
+    - PrunePropagationPolicy=background
+
+    # Optional: Retry failed syncs automatically
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
