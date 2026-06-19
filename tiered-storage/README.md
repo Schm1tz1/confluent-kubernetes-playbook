@@ -133,3 +133,17 @@ KAFKA_TOPIC=performance-hot envsubst <perf-test-consumer.yaml | kubectl apply -f
 # Once finished, run from tired storage "cold" topic
 KAFKA_TOPIC=performance-cold envsubst <perf-test-consumer.yaml | kubectl apply -f -
 ```
+
+## S3-API testing
+
+Create a topic and produce some test data - example:
+```shell
+kubectl apply -f topic-performance-cold-R1-P1.yaml
+KAFKA_TOPIC=performance-cold envsubst <perf-test-producer.yaml | kubectl apply -f -
+```
+
+### Listing API test - versioned and unversioned
+* Adapt the variable `PREFIX` in `s3-test-listing.yaml` and run the job.
+
+### Delete API - testing and TTL-based deletion
+* Adapt the variables `DRY_RUN` and `MAX_AGE_SECONDS` (or `NOT_CHANGED_SINCE_DATE`) in `s3-ttl-cleanup-job.yaml` and run the job. It will clean up old segments that haven't been purged by the retention job.

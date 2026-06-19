@@ -1,0 +1,405 @@
+# Tiered-storage age-based cleanup Job.
+#
+# Purpose: purge old tiered objects that were never deleted (e.g. data left
+# behind before versioning was enabled). It enumerates objects, filters them by
+# CHANGE DATE (the S3 LastModified timestamp), and removes the ones older than a
+# configurable threshold.
+#
+# DELETE MODE (DELETE_MODE, default "auto"):
+#   - plain     : ListObjectsV2 + plain DELETE. For genuinely NON-versioned
+#                 buckets (the original HCP workaround case).
+#   - versioned : ListVersions + DELETE ?versionId=null. For buckets where
+#                 versioning was LATER enabled: the pre-versioning leftovers
+#                 surface with VersionId=null and are purged by version id.
+#                 Real (post-versioning) versions and delete-markers are left
+#                 untouched -- those are managed by ce-kafka itself.
+#   - auto      : probe GET /bucket?versioning once; Enabled -> versioned, else plain.
+#
+# AGE THRESHOLD: set EXACTLY ONE of:
+#   - MAX_AGE_SECONDS        delete objects whose LastModified is older than N seconds
+#   - NOT_CHANGED_SINCE_DATE delete objects not changed since this date
+#                            (e.g. "2026-01-01" or "2026-01-01T00:00:00Z";
+#                             a bare date is treated as 00:00:00 UTC)
+#
+# SCOPE: starts at KEY_PREFIX (default empty = bucket root) and recurses into
+# every subdirectory, applying the age rule at each level.
+#
+# SAFETY: DRY_RUN defaults to "true" -- it only prints what it WOULD delete.
+# Set DRY_RUN="false" in the Job env to actually delete.
+#
+# AIR-GAPPED NOTE: the cluster has no public internet. Mirror nicolaka/netshoot
+# into your internal registry and update the image: field below.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: s3-ttl-cleanup-config
+  namespace: confluent
+data:
+  parse_keys.py: |
+    # Reads an S3 ListObjectsV2 XML response (delimited listing) on stdin.
+    # Prints, in order:
+    #   "<Key>\t<LastModified-epoch>\t<LastModified-iso>" for each object,
+    #   "__DIR__\t<prefix>"                   for each subdirectory (CommonPrefixes),
+    #   "__NEXT__\t<token>"                   final line (token empty when not truncated).
+    # Exits non-zero on an S3 <Error> body so the caller can surface it.
+    import sys, xml.etree.ElementTree as ET
+    from datetime import datetime, timezone
+    ns = '{http://s3.amazonaws.com/doc/2006-03-01/}'
+    data = sys.stdin.buffer.read()
+    try:
+        root = ET.fromstring(data)
+    except Exception as e:
+        sys.stderr.write("XML parse error: %s\nbody (truncated):\n%s\n"
+                         % (e, data.decode('utf-8', 'replace')[:1000]))
+        sys.exit(2)
+    if root.tag.endswith('Error'):
+        sys.stderr.write("S3 error: %s %s\n"
+                         % (root.findtext('Code') or '', root.findtext('Message') or ''))
+        sys.exit(3)
+
+    def to_epoch(s):
+        # S3 LastModified, e.g. 2026-05-28T05:47:44.000Z
+        s = s.strip()
+        if s.endswith('Z'):
+            s = s[:-1] + '+00:00'
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp())
+
+    for c in root.findall(ns + 'Contents'):
+        k = c.findtext(ns + 'Key')
+        if not k:
+            continue
+        lm = c.findtext(ns + 'LastModified')
+        epoch = ''
+        iso = ''
+        if lm:
+            try:
+                ep = to_epoch(lm)
+                epoch = str(ep)
+                iso = datetime.fromtimestamp(ep, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+            except Exception:
+                epoch = ''
+                iso = ''
+        print("%s\t%s\t%s" % (k, epoch, iso))
+    for cp in root.findall(ns + 'CommonPrefixes'):
+        p = cp.findtext(ns + 'Prefix')
+        if p:
+            sys.stdout.write("__DIR__\t%s\n" % p)
+    truncated = (root.findtext(ns + 'IsTruncated') or 'false').lower() == 'true'
+    token = root.findtext(ns + 'NextContinuationToken') or ''
+    sys.stdout.write("__NEXT__\t%s\n" % (token if truncated else ''))
+
+  parse_versions.py: |
+    # Reads an S3 ListVersions ("GET ?versions") XML response on stdin.
+    # Emits ONLY the pre-versioning leftovers: <Version> entries whose VersionId
+    # is "null" (or absent). Real versions and <DeleteMarker> entries are skipped
+    # on purpose -- ce-kafka manages those.
+    # Prints, in order:
+    #   "<Key>\t<LastModified-epoch>\t<LastModified-iso>" for each null version,
+    #   "__DIR__\t<prefix>"                               for each subdirectory,
+    #   "__NEXT__\t<NextKeyMarker>\t<NextVersionIdMarker>" final pagination line
+    #                                                     (both empty when not truncated).
+    # Exits non-zero on an S3 <Error> body so the caller can surface it.
+    import sys, xml.etree.ElementTree as ET
+    from datetime import datetime, timezone
+    ns = '{http://s3.amazonaws.com/doc/2006-03-01/}'
+    data = sys.stdin.buffer.read()
+    try:
+        root = ET.fromstring(data)
+    except Exception as e:
+        sys.stderr.write("XML parse error: %s\nbody (truncated):\n%s\n"
+                         % (e, data.decode('utf-8', 'replace')[:1000]))
+        sys.exit(2)
+    if root.tag.endswith('Error'):
+        sys.stderr.write("S3 error: %s %s\n"
+                         % (root.findtext('Code') or '', root.findtext('Message') or ''))
+        sys.exit(3)
+
+    def to_epoch(s):
+        s = s.strip()
+        if s.endswith('Z'):
+            s = s[:-1] + '+00:00'
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp())
+
+    for v in root.findall(ns + 'Version'):
+        vid = (v.findtext(ns + 'VersionId') or '').strip()
+        if vid and vid.lower() != 'null':
+            continue   # a real post-versioning version: leave it for ce-kafka
+        k = v.findtext(ns + 'Key')
+        if not k:
+            continue
+        lm = v.findtext(ns + 'LastModified')
+        epoch = ''
+        iso = ''
+        if lm:
+            try:
+                ep = to_epoch(lm)
+                epoch = str(ep)
+                iso = datetime.fromtimestamp(ep, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+            except Exception:
+                epoch = ''
+                iso = ''
+        print("%s\t%s\t%s" % (k, epoch, iso))
+    for cp in root.findall(ns + 'CommonPrefixes'):
+        p = cp.findtext(ns + 'Prefix')
+        if p:
+            sys.stdout.write("__DIR__\t%s\n" % p)
+    truncated = (root.findtext(ns + 'IsTruncated') or 'false').lower() == 'true'
+    km = root.findtext(ns + 'NextKeyMarker') or ''
+    vm = root.findtext(ns + 'NextVersionIdMarker') or ''
+    if not truncated:
+        km = ''
+        vm = ''
+    sys.stdout.write("__NEXT__\t%s\t%s\n" % (km, vm))
+
+  cutoff.py: |
+    # Resolves the deletion cutoff from MAX_AGE_SECONDS / NOT_CHANGED_SINCE_DATE.
+    # Exactly one must be provided. Prints "<epoch-seconds>\t<iso8601-utc>".
+    import sys, time
+    from datetime import datetime, timezone
+    secs, since = sys.argv[1].strip(), sys.argv[2].strip()
+    if secs:
+        epoch = int(time.time()) - int(secs)
+    else:
+        s = since
+        if 'T' not in s and ' ' not in s:
+            s = s + 'T00:00:00'
+        s = s.replace(' ', 'T')
+        if s.endswith('Z'):
+            s = s[:-1] + '+00:00'
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        epoch = int(dt.timestamp())
+    iso = datetime.fromtimestamp(epoch, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    print("%d\t%s" % (epoch, iso))
+
+  cleanup.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    : "${ENDPOINT:?set ENDPOINT (e.g. https://hcp.example.net)}"
+    : "${BUCKET:?set BUCKET}"
+    : "${ACCESS_KEY:?set ACCESS_KEY}"
+    : "${SECRET_KEY:?set SECRET_KEY}"
+    REGION="${REGION:-us-east-1}"
+    KEY_PREFIX="${KEY_PREFIX:-}"          # starting prefix; empty = bucket root, recurse all subdirs
+    DRY_RUN="${DRY_RUN:-true}"
+    MAX_AGE_SECONDS="${MAX_AGE_SECONDS:-}"
+    NOT_CHANGED_SINCE_DATE="${NOT_CHANGED_SINCE_DATE:-}"
+    DELETE_MODE="${DELETE_MODE:-auto}"    # auto | plain | versioned
+    PARSER="${PARSER:-/config/parse_keys.py}"
+    VPARSER="${VPARSER:-/config/parse_versions.py}"
+    CUTOFF_TOOL="${CUTOFF_TOOL:-/config/cutoff.py}"
+
+    # --- resolve the age threshold: exactly one of the two must be set ---
+    if [ -n "$MAX_AGE_SECONDS" ] && [ -n "$NOT_CHANGED_SINCE_DATE" ]; then
+      echo "Set only ONE of MAX_AGE_SECONDS or NOT_CHANGED_SINCE_DATE, not both." >&2
+      exit 1
+    fi
+    if [ -z "$MAX_AGE_SECONDS" ] && [ -z "$NOT_CHANGED_SINCE_DATE" ]; then
+      echo "Set one of MAX_AGE_SECONDS or NOT_CHANGED_SINCE_DATE." >&2
+      exit 1
+    fi
+
+    IFS=$'\t' read -r CUTOFF CUTOFF_ISO < <(python3 "$CUTOFF_TOOL" "$MAX_AGE_SECONDS" "$NOT_CHANGED_SINCE_DATE")
+    if [ -z "${CUTOFF:-}" ]; then
+      echo "Could not resolve cutoff from MAX_AGE_SECONDS='$MAX_AGE_SECONDS' NOT_CHANGED_SINCE_DATE='$NOT_CHANGED_SINCE_DATE'." >&2
+      exit 1
+    fi
+
+    SIGV4=(--aws-sigv4 "aws:amz:${REGION}:s3" --user "${ACCESS_KEY}:${SECRET_KEY}")
+    [ -n "${SESSION_TOKEN:-}" ] && SIGV4+=(-H "x-amz-security-token: ${SESSION_TOKEN}")
+
+    urlenc() { python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=""))' "$1"; }
+
+    # --- resolve delete mode (plain vs versioned) ---
+    MODE="$DELETE_MODE"
+    if [ "$MODE" = "auto" ]; then
+      vresp="$(curl -sS "${SIGV4[@]}" "${ENDPOINT}/${BUCKET}?versioning")"
+      if printf '%s' "$vresp" | grep -q '<Status>Enabled</Status>'; then
+        MODE="versioned"
+      else
+        MODE="plain"
+      fi
+    fi
+    case "$MODE" in
+      plain|versioned) ;;
+      *) echo "DELETE_MODE must be auto, plain, or versioned (got '$DELETE_MODE')." >&2; exit 1 ;;
+    esac
+
+    echo "Endpoint : $ENDPOINT"
+    echo "Bucket   : $BUCKET"
+    echo "StartPfx : '${KEY_PREFIX}' (recurse into subdirectories)"
+    echo "Cutoff   : $CUTOFF_ISO (delete objects last modified before this)"
+    if [ -n "$MAX_AGE_SECONDS" ]; then
+      echo "Rule     : MAX_AGE_SECONDS=$MAX_AGE_SECONDS"
+    else
+      echo "Rule     : NOT_CHANGED_SINCE_DATE=$NOT_CHANGED_SINCE_DATE"
+    fi
+    if [ "$MODE" = "versioned" ]; then
+      echo "Mode     : versioned (delete VersionId=null leftovers via ?versionId=null)"
+    else
+      echo "Mode     : plain (non-versioned bucket, plain DELETE)"
+    fi
+    echo "DryRun   : $DRY_RUN"
+    echo
+
+    matched=0; deleted=0; failed=0; skipped=0
+    NOW="$(date -u +%s)"
+
+    # "mtime=<iso> age=<n>s" for an epoch; "mtime=unknown age=unknown" otherwise.
+    meta() {
+      local e="$1" iso="$2"
+      if [ -z "$e" ]; then echo "mtime=unknown        age=unknown"; return; fi
+      printf 'mtime=%s age=%ds' "$iso" "$(( NOW - e ))"
+    }
+
+    # Apply the age rule to a batch of "key\tepoch\tiso" lines.
+    process_objects() {
+      local lines="$1" k epoch iso code info
+      [ -z "$lines" ] && return 0
+      while IFS=$'\t' read -r k epoch iso; do
+        [ -z "$k" ] && continue
+        info="$(meta "$epoch" "$iso")"
+        if [ -z "$epoch" ]; then
+          echo "  SKIP(no-date) $info  $k"; skipped=$((skipped + 1)); continue
+        fi
+        if [ "$epoch" -ge "$CUTOFF" ]; then
+          echo "  KEEP          $info  $k"; skipped=$((skipped + 1)); continue
+        fi
+        matched=$((matched + 1))
+        local delurl="${ENDPOINT}/${BUCKET}/${k}"
+        [ "$MODE" = "versioned" ] && delurl="${delurl}?versionId=null"
+        if [ "$DRY_RUN" = "false" ]; then
+          code="$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE "${SIGV4[@]}" "$delurl")"
+          if [ "$code" = "204" ] || [ "$code" = "200" ]; then
+            echo "  DELETED       $info  $k"; deleted=$((deleted + 1))
+          else
+            echo "  FAILED($code)  $info  $k"; failed=$((failed + 1))
+          fi
+        else
+          echo "  WOULD DELETE  $info  $k"
+        fi
+      done <<< "$lines"
+    }
+
+    # List one directory level (delimiter='/'), process its objects, then
+    # recurse into each subdirectory it reports. Handles both listing modes:
+    #   plain     -> ListObjectsV2,  continuation-token pagination
+    #   versioned -> ListVersions,   key-marker/version-id-marker pagination
+    walk() {
+      local prefix="$1" url resp parsed next dirs keys d
+      local token="" keymarker="" vidmarker="" parser
+      local subdirs=()
+      echo "=== scanning: '${prefix}' ==="
+      while : ; do
+        if [ "$MODE" = "versioned" ]; then
+          url="${ENDPOINT}/${BUCKET}?versions&delimiter=%2F"
+          [ -n "$prefix" ]    && url="${url}&prefix=$(urlenc "$prefix")"
+          [ -n "$keymarker" ] && url="${url}&key-marker=$(urlenc "$keymarker")"
+          [ -n "$vidmarker" ] && url="${url}&version-id-marker=$(urlenc "$vidmarker")"
+          parser="$VPARSER"
+        else
+          url="${ENDPOINT}/${BUCKET}?list-type=2&delimiter=%2F"
+          [ -n "$prefix" ] && url="${url}&prefix=$(urlenc "$prefix")"
+          [ -n "$token" ]  && url="${url}&continuation-token=$(urlenc "$token")"
+          parser="$PARSER"
+        fi
+
+        resp="$(curl -sS "${SIGV4[@]}" "$url")"
+        if ! parsed="$(printf '%s' "$resp" | python3 "$parser")"; then
+          echo "ERROR: could not list objects under '$prefix' (see message above)." >&2
+          exit 1
+        fi
+
+        next="$(printf '%s\n' "$parsed" | sed -n 's/^__NEXT__\t//p')"
+        dirs="$(printf '%s\n' "$parsed" | sed -n 's/^__DIR__\t//p')"
+        keys="$(printf '%s\n' "$parsed" | grep -v -e '^__NEXT__' -e '^__DIR__' || true)"
+
+        process_objects "$keys"
+
+        if [ -n "$dirs" ]; then
+          while IFS= read -r d; do
+            [ -n "$d" ] && subdirs+=("$d")
+          done <<< "$dirs"
+        fi
+
+        if [ "$MODE" = "versioned" ]; then
+          keymarker="$(printf '%s' "$next" | cut -f1)"
+          vidmarker="$(printf '%s' "$next" | cut -f2)"
+          [ -z "$keymarker" ] && [ -z "$vidmarker" ] && break
+        else
+          token="$next"
+          [ -z "$token" ] && break
+        fi
+      done
+
+      for d in "${subdirs[@]:-}"; do
+        [ -z "$d" ] && continue
+        walk "$d"
+      done
+    }
+
+    walk "$KEY_PREFIX"
+    echo
+
+    echo "Summary: matched=$matched deleted=$deleted failed=$failed skipped=$skipped dry_run=$DRY_RUN"
+    if [ "$DRY_RUN" = "true" ]; then
+      echo "Nothing was deleted. Re-run with DRY_RUN=\"false\" to delete the matched objects."
+    fi
+    [ "$failed" -eq 0 ]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s3-ttl-cleanup
+  namespace: confluent
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 0          # destructive: do not auto-retry
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: s3-cleanup
+          image: nicolaka/netshoot          # mirror into your internal registry
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              echo "=================================================="
+              echo " Tiered-storage age-based cleanup (HCP-compatible)"
+              echo "=================================================="
+              bash /config/cleanup.sh
+          env:
+            # --- credentials: replace, or switch to a Secret (see note below) ---
+            - { name: ACCESS_KEY, value: "rootuser" }
+            - { name: SECRET_KEY, value: "rootpass123" }
+            # - name: ACCESS_KEY
+            #   valueFrom: { secretKeyRef: { name: hcp-s3-creds, key: access-key } }
+            # - name: SECRET_KEY
+            #   valueFrom: { secretKeyRef: { name: hcp-s3-creds, key: secret-key } }
+            - { name: REGION,    value: "us-east-1" }
+            - { name: ENDPOINT,  value: "http://minio.minio.svc.cluster.local:9000" }   # HCP S3 endpoint (path-style)
+            - { name: BUCKET,    value: "cflt-tier" }
+            - { name: KEY_PREFIX, value: "" }                          # optional: only scan keys under this prefix
+            - { name: SESSION_TOKEN, value: "" }
+            - { name: DELETE_MODE, value: "auto" }                     # auto | plain | versioned (auto probes bucket versioning)
+            # --- age threshold: set EXACTLY ONE of the next two ---
+            - { name: MAX_AGE_SECONDS, value: "300" }                  # delete objects older than N seconds (e.g. 2592000 = 30d)
+            - { name: NOT_CHANGED_SINCE_DATE, value: "" }              # e.g. "2026-01-01"; leave MAX_AGE_SECONDS empty if using this
+            - { name: DRY_RUN,   value: "false" }                       # set "false" to actually delete
+          volumeMounts:
+            - { name: config, mountPath: /config, readOnly: true }
+      volumes:
+        - name: config
+          configMap:
+            name: s3-ttl-cleanup-config
