@@ -396,7 +396,7 @@ spec:
             # --- age threshold: set EXACTLY ONE of the next two ---
             - { name: MAX_AGE_SECONDS, value: "300" }                  # delete objects older than N seconds (e.g. 2592000 = 30d)
             - { name: NOT_CHANGED_SINCE_DATE, value: "" }              # e.g. "2026-01-01"; leave MAX_AGE_SECONDS empty if using this
-            - { name: DRY_RUN,   value: "false" }                       # set "false" to actually delete
+            - { name: DRY_RUN,   value: "true" }                       # set "false" to actually delete
           volumeMounts:
             - { name: config, mountPath: /config, readOnly: true }
       volumes:
