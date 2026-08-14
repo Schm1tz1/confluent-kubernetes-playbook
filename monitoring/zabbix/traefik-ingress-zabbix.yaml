@@ -1,0 +1,16 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: zabbix-web-ingress
+  namespace: monitoring
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`zabbix.k8s.schmitzi.net`)
+      services:
+        - name: zabbix-zabbix-web
+          port: 80
+

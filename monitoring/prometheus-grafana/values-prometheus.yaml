@@ -1,0 +1,16 @@
+alertmanager:
+  persistentVolume:
+    enabled: false
+grafana:
+  ingress:
+    enabled: true
+    hosts:
+    - grafana.k8s.schmitzi.net
+    ingressClassName: traefik
+    tls:
+    - hosts:
+      - grafana.k8s.schmitzi.net
+      secretName: tls-schmitzi-ingress
+server:
+  persistentVolume:
+    enabled: false

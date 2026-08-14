@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jmxterm
+  labels:
+    app: jmxterm
+spec:
+  containers:
+  - name: jmxterm
+    image: platformatorylabs/jmxterm:1.0.4
+    # command: ['sh', '-c', 'tail -f /dev/null']
