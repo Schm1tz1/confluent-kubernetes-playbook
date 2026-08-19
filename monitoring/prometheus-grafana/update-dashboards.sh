@@ -14,8 +14,7 @@ sed 's/\${Prometheus}//g;s/Environment/Namespace/g;s/env/namespace/g;s/label_val
 sed 's/\${Prometheus}//g;s/Environment/Namespace/g;s/env/namespace/g;s/label_values(namespace)/label_values(jmx_exporter_build_info, namespace)/g;s/instance/pod/g;s/Hostname/Pod/g;s/hostname/pod/g' ${INPUT_JMX_BASE}/assets/grafana/provisioning/dashboards/kafka-consumer.json > $OUTPUT_DIR/kafka-consumer.json
 sed 's/\${Prometheus}//g;s/Environment/Namespace/g;s/env/namespace/g;s/label_values(namespace)/label_values(jmx_exporter_build_info, namespace)/g;s/Instance/Pod/g;s/instance/pod/g;s/kafka-broker/kafka/g;s/schema-registry/schemaregistry/g;s/kafka-connect/connect/g' ${INPUT_JMX_BASE}/assets/grafana/provisioning/dashboards/confluent-platform.json > $OUTPUT_DIR/confluent-platform.json
 sed 's/\${Prometheus}//g;s/Environment/Namespace/g;s/env/namespace/g;s/label_values(namespace)/label_values(jmx_exporter_build_info, namespace)/g;s/instance/pod/g;s/kafka-broker/kafka/g' ${INPUT_JMX_BASE}/assets/grafana/provisioning/dashboards/cluster-linking.json > $OUTPUT_DIR/cluster-linking.json
-# KRaft specific
-sed 's/\${Prometheus}//g;s/Environment/Namespace/g;s/env/namespace/g;s/label_values(namespace)/label_values(jmx_exporter_build_info, namespace)/g;s/Instance/Pod/g;s/instance/pod/g;s/kafka-broker/kafka/g' ${INPUT_JMX_BASE}/assets/grafana/provisioning/dashboards/kraft.json > $OUTPUT_DIR/kraft.json
+sed 's/\${Prometheus}//g;s/Environment/Namespace/g;s/env/namespace/g;s/label_values(namespace)/label_values(jmx_exporter_build_info, namespace)/g;s/Instance/Pod/g;s/instance/pod/g;s/kafka-broker/kafka/g;s/kafka-controller/kraftcontroller/g' ${INPUT_JMX_BASE}/assets/grafana/provisioning/dashboards/kraft.json > $OUTPUT_DIR/kraft.json
 
 # Tag all generated dashboards as "CP"
 for f in $OUTPUT_DIR/*.json; do

@@ -13,3 +13,7 @@ kubectl patch kafkas -n ${NAMESPACE} \
   $(kubectl get kafkas -n ${NAMESPACE} -o json | jq -r '.items[].metadata.name') \
   --patch-file jmx-kafka-patch.yaml  --type=merge
 
+kubectl patch kraftcontrollers -n ${NAMESPACE} \
+  $(kubectl get kraftcontrollers -n ${NAMESPACE} -o json | jq -r '.items[].metadata.name') \
+  --patch-file jmx-kafka-patch.yaml  --type=merge
+
