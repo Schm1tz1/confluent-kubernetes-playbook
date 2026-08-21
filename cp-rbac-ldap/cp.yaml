@@ -107,26 +107,41 @@ spec:
     init: confluentinc/confluent-init-container:2.11.1
   listeners:
     internal:
+      # Static SASL/PLAIN via pass-through (PlainLoginModule). Cannot use jaasConfig
+      # (FileBasedLoginModule) while a SASL/PLAIN+LDAP listener exists on the same broker.
       authentication:
         type: plain
-        jaasConfig:
-          secretRef: credentials
+        jaasConfigPassThrough:
+          secretRef: plain-jaas
       tls:
         enabled: true
     external:
+      # SASL/PLAIN with LDAP callback handler: client username/password are validated
+      # against LDAP. With RBAC/MDS enabled, CFK reuses the MDS LDAP provider config below,
+      # so no identityProvider / jaasConfig is needed here.
       authentication:
-        jaasConfig:
-          secretRef: credentials
-        type: plain
+        type: ldap
       tls:
         enabled: true
     replication:
       authentication:
-        jaasConfig:
-          secretRef: credentials
         type: plain
+        jaasConfigPassThrough:
+          secretRef: plain-jaas
       tls:
         enabled: true
+    custom:
+      # Static SASL/PLAIN over TLS (SASL_SSL), in-cluster only (kafka:9093).
+      # Lets you compare static credential auth against the LDAP-callback external listener,
+      # with the same encryption on the wire (uses the cluster's tls-kafka cert).
+      - name: externalplain
+        port: 9093
+        authentication:
+          type: plain
+          jaasConfigPassThrough:
+            secretRef: plain-jaas
+        tls:
+          enabled: true
   replicas: 3
   services:
     kafkaRest:

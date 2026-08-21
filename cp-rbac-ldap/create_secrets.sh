@@ -3,6 +3,7 @@ set -x
 
 # clean up
 kubectl -n confluent delete secret credentials
+kubectl -n confluent delete secret plain-jaas
 kubectl -n confluent delete secret mds-token
 kubectl -n confluent delete secret mds-client
 kubectl -n confluent delete secret mds-client-c3
@@ -34,6 +35,14 @@ kubectl create secret generic credentials \
   --from-file=basic.txt=./credentials/creds-control-center-users.txt \
   --from-file=plain-interbroker.txt=./credentials/creds-client-kafka-sasl-user.txt \
   --from-file=ldap.txt=./credentials/ldap.txt \
+    --save-config --dry-run=client -oyaml | kubectl apply -f -
+
+# JAAS pass-through for the static SASL/PLAIN listeners (internal, replication, external-plain).
+# Required whenever a SASL/PLAIN+LDAP listener coexists: those listeners must use
+# PlainLoginModule via jaasConfigPassThrough, not FileBasedLoginModule via jaasConfig.
+kubectl create secret generic plain-jaas \
+  -n confluent \
+  --from-file=plain-jaas.conf=./credentials/plain-jaas.conf \
     --save-config --dry-run=client -oyaml | kubectl apply -f -
 
 # C3 Monitoring Services

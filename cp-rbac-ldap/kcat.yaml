@@ -43,3 +43,22 @@ data:
     sasl.mechanisms=PLAIN
     sasl.username=kafka
     sasl.password=kafka-secret
+  # External SASL_SSL listener with LDAP callback on port 9092.
+  # username/password must be a real LDAP uid from openldap.yaml — peter is a
+  # member of the admins group (=> SystemAdmin). Rejected on the 9093 static listener.
+  kcat-ldap-tls-9092.conf: |
+    bootstrap.servers=kafka.confluent.svc.cluster.local:9092
+    security.protocol=SASL_SSL
+    ssl.ca.location=/mnt/certs/ca.crt
+    sasl.mechanisms=PLAIN
+    sasl.username=peter
+    sasl.password=ELERbgP7SFyy
+  # Custom SASL_SSL listener (static creds via plain-jaas.conf) on port 9093.
+  # username/password must match plain-jaas.conf (== LDIF uid=kafka).
+  kcat-plain-tls-9093.conf: |
+    bootstrap.servers=kafka.confluent.svc.cluster.local:9093
+    security.protocol=SASL_SSL
+    ssl.ca.location=/mnt/certs/ca.crt
+    sasl.mechanisms=PLAIN
+    sasl.username=kafka
+    sasl.password=yZvEFM3AV7mj

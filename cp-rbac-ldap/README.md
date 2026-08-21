@@ -42,3 +42,30 @@ Once Controlcenter is up and running, either add some ingress component or forwa
 kubectl port-forward -n confluent svc/controlcenter 9021:9021
 ```
 Then point you browser to thre ingress URL or to `https://localhost:9021` - accept the self-signed certificate.
+
+## Kafka client listeners: LDAP callback vs. static SASL
+
+The `Kafka` CR exposes two client listeners that authenticate with SASL/PLAIN but validate credentials differently — useful for comparing both mechanisms side by side. Both are SASL_SSL (TLS on the wire).
+
+| Listener | Port | Auth | Validates against | Example user |
+|----------|------|------|-------------------|--------------|
+| `external` | 9092 | `type: ldap` (LDAP callback handler) | LDAP directory (reuses the MDS LDAP provider) | any LDAP `uid`, e.g. `peter` |
+| custom `externalplain` | 9093 | `type: plain` + `jaasConfigPassThrough` | static creds in `plain-jaas.conf` | `kafka`, `control-center` |
+
+### Why `jaasConfigPassThrough`
+Once a SASL/PLAIN **LDAP** listener exists, every other SASL/PLAIN listener on the broker (`internal`, `replication` and the custom one) must use `jaasConfigPassThrough` with `PlainLoginModule` instead of `jaasConfig` — CFK renders `jaasConfig` with `FileBasedLoginModule`, and mixing the two login modules crashes the brokers. `create_secrets.sh` therefore creates a `plain-jaas` secret from `credentials/plain-jaas.conf`; its usernames/passwords mirror the LDIF service accounts in `openldap.yaml`.
+
+### Testing both listeners with kcat
+Deploy the client pod and its config:
+```shell
+kubectl apply -f kcat.yaml
+```
+Static-credential listener (9093), authenticates as `kafka` against `plain-jaas.conf`:
+```shell
+kubectl exec -n confluent kcat -- kcat -F /mnt/configs/kcat-plain-tls-9093.conf -L
+```
+LDAP-callback listener (9092), authenticates as the LDAP user `peter` (member of the `admins` group → `SystemAdmin`):
+```shell
+kubectl exec -n confluent kcat -- kcat -F /mnt/configs/kcat-ldap-tls-9092.conf -L
+```
+That LDAP user (`peter`) is **rejected** on 9093, and the `plain-jaas.conf`-only user (`kafka`) authenticates on 9093 but is not an LDAP identity on 9092 — which is the point of the comparison.
