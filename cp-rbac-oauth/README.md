@@ -38,7 +38,7 @@ kubectl apply -f keycloak.yaml
 
 * Exporting Keycloak realms:
 ```shell
-# Run inside the pod to export the reals with users
+# Run inside the pod to export the realms with users
 /opt/keycloak/bin/kc.sh export --dir /tmp/ --users realm_file --realm sso_test
 
 # C3 container lacks tar command to use kubectl cp so we need to pull it manually:

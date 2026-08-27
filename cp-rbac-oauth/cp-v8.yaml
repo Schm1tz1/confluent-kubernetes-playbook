@@ -170,8 +170,8 @@ spec:
             #issuer: http://keycloak:8080/realms/sso_test
             #authorizeBaseEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/auth
             # If accessing IdP via Ingress, use external URL via Ingress:
-            issuer: https://keycloak.k8s.internal.schmitzi.net/realms/sso_test
-            authorizeBaseEndpointUri: https://keycloak.k8s.internal.schmitzi.net/realms/sso_test/protocol/openid-connect/auth
+            issuer: https://keycloak.k8s.schmitzi.net/realms/sso_test
+            authorizeBaseEndpointUri: https://keycloak.k8s.schmitzi.net/realms/sso_test/protocol/openid-connect/auth
             refreshToken: false
   dependencies:
     kafkaRest:
@@ -219,27 +219,27 @@ spec:
     init: confluentinc/confluent-init-container:3.1.0
   tls:
     secretRef: tls-kafkarestproxy
-  authentication:
-    type: mtls
-    mtls:
-      sslClientAuthentication: requested
-      principalMappingRules:
-        - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
-        - "DEFAULT"
+  # authentication:
+  #   type: mtls
+  #   mtls:
+  #     sslClientAuthentication: requested
+  #     principalMappingRules:
+  #       - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
+  #       - "DEFAULT"
   authorization:
     type: rbac
   configOverrides:
     server:
     # This fixes HTTP 400 Invalid SNI Errors from Jetty
       - "sni.host.check.enabled=false"
+      # - bootstrap.servers=SSL://kafka.confluent.svc.cluster.local:9071
   dependencies:
-    kafka:
-      bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
-      authentication:
-        type: mtls
-        sslClientAuthentication: true
-      tls:
-        enabled: true
+    # kafka:
+    #   bootstrapEndpoint: kafka.confluent.svc.cluster.local:9071
+    #   authentication:
+    #     type: mtls
+    #   tls:
+    #     enabled: true
     mds:
       endpoint: https://kafka.confluent.svc.cluster.local:8090
       tokenKeyPair:
@@ -327,6 +327,7 @@ spec:
     server:
     # This fixes HTTP 400 Invalid SNI Errors from Jetty
       - "confluent.controlcenter.rest.sni.host.check.enabled=false"
+      - "confluent.oidc.session.token.expiry.ms=900000"
   dependencies:
     prometheusClient:
       url: https://controlcenter.confluent.svc.cluster.local:9090
