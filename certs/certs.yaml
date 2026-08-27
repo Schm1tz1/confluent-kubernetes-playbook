@@ -14,6 +14,10 @@ spec:
     name: my-ca-issuer
     kind: ClusterIssuer
   secretName: tls-zookeeper
+  secretTemplate: 
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -30,6 +34,10 @@ spec:
     name: my-ca-issuer
     kind: ClusterIssuer
   secretName: tls-kraftcontroller
+  secretTemplate: 
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -46,6 +54,10 @@ spec:
     name: my-ca-issuer
     kind: ClusterIssuer
   secretName: tls-kafka
+  secretTemplate: 
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -63,6 +75,10 @@ spec:
     name: my-ca-issuer
     kind: ClusterIssuer
   secretName: tls-schemaregistry
+  secretTemplate: 
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -79,6 +95,10 @@ spec:
     name: my-ca-issuer
     kind: ClusterIssuer
   secretName: tls-connect
+  secretTemplate: 
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -96,6 +116,10 @@ spec:
     name: my-ca-issuer
     kind: ClusterIssuer
   secretName: tls-controlcenter
+  secretTemplate: 
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -113,6 +137,10 @@ spec:
     name: my-ca-issuer
     kind: ClusterIssuer
   secretName: tls-kafkarestproxy
+  secretTemplate: 
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -130,6 +158,10 @@ spec:
     name: my-ca-issuer
     kind: ClusterIssuer
   secretName: tls-ksql
+  secretTemplate: 
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -147,3 +179,7 @@ spec:
     name: my-ca-issuer
     kind: ClusterIssuer
   secretName: tls-client
+  secretTemplate: 
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
