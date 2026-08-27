@@ -102,8 +102,8 @@ spec:
         #   secretRef: oauth-jass
         # oauthSettings:
         #   groupsClaimName: groups
-        #   jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
-        #   tokenEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
+        #   jwksEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/certs
+        #   tokenEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/token
         type: mtls
         mtls:
           sslClientAuthentication: "required"
@@ -129,9 +129,9 @@ spec:
         oauth:
           secretRef: oauth-jass
           configuration:
-            tokenEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
-            expectedIssuer: http://keycloak:8080/realms/sso_test
-            jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
+            tokenEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/token
+            expectedIssuer: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test
+            jwksEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/certs
             subClaimName: client_id
         mtls:
           sslClientAuthentication: "required"
@@ -155,8 +155,8 @@ spec:
             - "DEFAULT"
         oauth:
           configurations:
-            expectedIssuer: http://keycloak:8080/realms/sso_test
-            jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
+            expectedIssuer: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test
+            jwksEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/certs
             subClaimName: client_id
         oidc:
           clientCredentials:
@@ -164,11 +164,11 @@ spec:
           configurations:
             groupsClaimName: profile_groups
             subClaimName: sub
-            jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
-            tokenBaseEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
+            jwksEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/certs
+            tokenBaseEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/token
             # k8s-internal URL
-            #issuer: http://keycloak:8080/realms/sso_test
-            #authorizeBaseEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/auth
+            #issuer: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test
+            #authorizeBaseEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/auth
             # If accessing IdP via Ingress, use external URL via Ingress:
             issuer: https://keycloak.k8s.schmitzi.net/realms/sso_test
             authorizeBaseEndpointUri: https://keycloak.k8s.schmitzi.net/realms/sso_test/protocol/openid-connect/auth
@@ -181,9 +181,9 @@ spec:
         jaasConfig:
           secretRef: oauth-jass
         oauthSettings:
-          tokenEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
-          expectedIssuer: http://keycloak:8080/realms/sso_test
-          jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
+          tokenEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/token
+          expectedIssuer: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test
+          jwksEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/certs
           subClaimName: client_id
         sslClientAuthentication: true
       tls:
@@ -249,9 +249,9 @@ spec:
         oauth:
           secretRef: oauth-jass
           configuration:
-            tokenEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
-            expectedIssuer: http://keycloak:8080/realms/sso_test
-            jwksEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/certs
+            tokenEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/token
+            expectedIssuer: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test
+            jwksEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/certs
             subClaimName: client_id
       tls:
         enabled: true
@@ -404,7 +404,7 @@ spec:
       oauth:
         secretRef: oauth-jass
         configuration:
-          tokenEndpointUri: http://keycloak:8080/realms/sso_test/protocol/openid-connect/token
+          tokenEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/token
       sslClientAuthentication: true
     tls:
       secretRef: tls-kafka
