@@ -26,9 +26,11 @@ spec:
     controller:
       authentication:
         type: mtls
-        principalMappingRules:
-          - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
-          - "DEFAULT"
+        mtls:
+          sslClientAuthentication: "required"
+          principalMappingRules:
+            - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
+            - "DEFAULT"
       tls:
         enabled: true
   authorization:
@@ -90,21 +92,6 @@ spec:
     internal:
       authentication:
         type: mtls
-        principalMappingRules:
-          - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
-          - "DEFAULT"
-      tls:
-        enabled: true
-    external:
-      authentication:
-        # type: oauth
-        # jaasConfig:
-        #   secretRef: oauth-jass
-        # oauthSettings:
-        #   groupsClaimName: groups
-        #   jwksEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/certs
-        #   tokenEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/token
-        type: mtls
         mtls:
           sslClientAuthentication: "required"
           principalMappingRules:
@@ -112,6 +99,30 @@ spec:
             - "DEFAULT"
       tls:
         enabled: true
+    external:
+      authentication:
+        type: oauth
+        jaasConfig:
+          secretRef: oauth-jass
+        oauthSettings:
+          groupsClaimName: groups
+          subClaimName: client_id
+          jwksEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/certs
+          tokenEndpointUri: http://keycloak.confluent.svc.cluster.local:8080/realms/sso_test/protocol/openid-connect/token
+      tls:
+        enabled: true
+    custom:
+      - name: mtls
+        port: 9094
+        authentication:
+          type: mtls
+          mtls:
+            sslClientAuthentication: "required"
+            principalMappingRules:
+              - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
+              - "DEFAULT"
+        tls:
+          enabled: true
   metricReporter:
     enabled: true
     authentication:
@@ -136,8 +147,8 @@ spec:
         mtls:
           sslClientAuthentication: "required"
           principalMappingRules:
-            - RULE:^CN=([a-zA-Z0-9]*).*$/$1/
-            - DEFAULT
+            - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
+            - "DEFAULT"
     mds:
       impersonation:
         admins:
@@ -222,7 +233,7 @@ spec:
   # authentication:
   #   type: mtls
   #   mtls:
-  #     sslClientAuthentication: requested
+  #     sslClientAuthentication: "required"
   #     principalMappingRules:
   #       - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
   #       - "DEFAULT"
@@ -275,7 +286,7 @@ spec:
   authentication:
     type: mtls
     mtls:
-      sslClientAuthentication: requested
+      sslClientAuthentication: "required"
       principalMappingRules:
         - "RULE:.*CN=([a-zA-Z0-9.-]*).*$/$1/"
         - "DEFAULT"

@@ -1,0 +1,61 @@
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: client-cluster-admin
+  namespace: confluent
+spec:
+  principal:
+    type: user
+    name: client
+  role: ClusterAdmin
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: ConfluentRolebinding
+metadata:
+  name: client-kstreams-owner
+  namespace: confluent
+spec:
+  principal:
+    type: user
+    name: client
+  resourcePatterns:
+  - name: kstreams-
+    patternType: PREFIXED
+    resourceType: Topic
+  - name: kstreams-
+    patternType: PREFIXED
+    resourceType: Group
+  - name: kstreams-
+    patternType: PREFIXED
+    resourceType: TransactionalId
+  role: ResourceOwner
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: kstreams-input-topic
+  namespace: confluent
+spec:
+  kafkaRestClassRef:
+    name: default
+    namespace: confluent
+  replicas: 3
+  partitionCount: 6
+  configs:
+   cleanup.policy: "delete"
+   retention.ms: "86400000"
+---
+apiVersion: platform.confluent.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: kstreams-output-topic
+  namespace: confluent
+spec:
+  kafkaRestClassRef:
+    name: default
+    namespace: confluent
+  replicas: 3
+  partitionCount: 6
+  configs:
+   cleanup.policy: "delete"
+   retention.ms: "86400000"

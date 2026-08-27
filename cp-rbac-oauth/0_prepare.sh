@@ -20,15 +20,15 @@ fi
 kubectl create secret generic mds-token \
 --from-file=mdsPublicKey.pem=mds-keypair-pub.pem \
 --from-file=mdsTokenKeyPair.pem=mds-keypair-priv.pem \
--n confluent --dry-run=client -o yaml | kube1 apply -f - 
+-n confluent --dry-run=client -o yaml | kubectl apply -f - 
 
 kubectl create secret generic oidccredential \
 --from-file=oidcClientSecret.txt=oidcClientSecret.txt \
--n confluent --dry-run=client -o yaml | kube1 apply -f - 
+-n confluent --dry-run=client -o yaml | kubectl apply -f - 
 
 kubectl create secret generic oauth-jass \
 --from-file=oauth.txt=oidcClientSecret.txt \
--n confluent --dry-run=client -o yaml | kube1 apply -f - 
+-n confluent --dry-run=client -o yaml | kubectl apply -f - 
 
 kubectl apply -f keycloak.yaml
 kubectl rollout status deployment/keycloak --namespace confluent --timeout=180s

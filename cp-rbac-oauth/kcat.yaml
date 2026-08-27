@@ -6,7 +6,7 @@ metadata:
 spec:
   containers:
   - name: cp-kcat
-    image: confluentinc/cp-kcat:8.1.0
+    image: confluentinc/cp-kcat:8.2.3
     command: ['sh', '-c', 'tail -f /dev/null']
     volumeMounts:
       - name: tls-certs
@@ -30,23 +30,14 @@ metadata:
   name: kcat-config
   namespace: confluent
 data:
-  kcat-plain.conf: |
-    bootstrap.servers=kafka.confluent.svc.cluster.local:9092
-    security.protocol=SASL_PLAINTEXT
-    sasl.mechanisms=PLAIN
-    sasl.username=kafka
-    sasl.password=kafka-secret
-  kcat-plain-tls.conf: |
-    bootstrap.servers=kafka.confluent.svc.cluster.local:9092
-    security.protocol=SASL_SSL
-    ssl.ca.location=/mnt/certs/ca.crt
-    sasl.mechanisms=PLAIN
-    sasl.username=kafka
-    sasl.password=kafka-secret
   kcat-mtls.conf: |
-    bootstrap.servers=kafka.confluent.svc.cluster.local:9092
+    # Custom mTLS listener (client cert CN=client -> User:client)
+    bootstrap.servers=kafka.confluent.svc.cluster.local:9094
     security.protocol=SSL
     ssl.ca.location=/mnt/certs/ca.crt
     ssl.key.location=/mnt/certs/tls.key
     # ssl.key.password=changeme
     ssl.certificate.location=/mnt/certs/tls.crt
+  # No kcat-oauth.conf: cp-kcat images bundle librdkafka <1.9.0, which lacks
+  # sasl.oauthbearer.method=oidc support. Test the OAuth listener with the
+  # JVM clients on the kafka-* pods instead - see README.md.
