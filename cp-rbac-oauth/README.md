@@ -70,6 +70,7 @@ Once Controlcenter is up and running, either add some ingress component or forwa
 kubectl port-forward -n confluent svc/controlcenter 9021:9021
 ```
 Then point you browser to thre ingress URL or to `https://localhost:9021` - accept the self-signed certificate.
+Log in with default C3 account: User `c3`, Password `c3-secret`.
 
 ## Test Restproxy
 ### mTLS AuthN
